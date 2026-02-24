@@ -42,7 +42,7 @@
     "link": "pnpm run bundle && pnpm i && pnpm link --global"
   },
   "dependencies": {
-    "@wdio/mcp": "file:/Users/vince/webdriverio/mcp/wdio-mcp-2.2.1.tgz",
+    "@wdio/mcp": "^2.3.0",
     "@wdio/types": "^9.24.0",
     "webdriverio": "^9.24.0",
     "yargs": "^17.7.2"

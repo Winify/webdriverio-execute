@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@wdio/mcp':
-        specifier: file:/Users/vince/webdriverio/mcp/wdio-mcp-2.2.1.tgz
-        version: file:../mcp/wdio-mcp-2.2.1.tgz
+        specifier: ^2.3.0
+        version: 2.3.0
       '@wdio/types':
         specifier: ^9.24.0
         version: 9.24.0
@@ -1061,9 +1061,8 @@ packages:
     resolution: {integrity: sha512-HdzDrRs+ywAqbXGKqe1i/bLtCv47plz4TvsHFH3j729OooT5VH38ctFn5aLXgECmiAKDkmH/A6kOq2Zh5DIxww==}
     engines: {node: '>=18.20.0'}
 
-  '@wdio/mcp@file:../mcp/wdio-mcp-2.2.1.tgz':
-    resolution: {integrity: sha512-RGmWiuoEeSdsOWVSCiFjOsNXaw5CUUCh57CWrboo1v0Kif488dmgq5b1YUfNe++EF1QoOLgEttHE28fN/aAHXg==, tarball: file:../mcp/wdio-mcp-2.2.1.tgz}
-    version: 2.2.1
+  '@wdio/mcp@2.3.0':
+    resolution: {integrity: sha512-W12Jsb5W8I8q8VxMee0tcX3z9AU43IjMaXAyz8VCg0LzsfSUuZD6aHp2hpyFCF/Nz1KMEw71Z0f9aYZ0Hic4ag==}
     hasBin: true
 
   '@wdio/protocols@9.23.3':
@@ -4224,7 +4223,7 @@ snapshots:
       safe-regex2: 5.0.0
       strip-ansi: 7.1.2
 
-  '@wdio/mcp@file:../mcp/wdio-mcp-2.2.1.tgz':
+  '@wdio/mcp@2.3.0':
     dependencies:
       '@modelcontextprotocol/sdk': 1.26.0(zod@4.3.6)
       '@toon-format/toon': 2.1.0
