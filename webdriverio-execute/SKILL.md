@@ -7,6 +7,19 @@ description: Use when automating a browser or mobile app interactively from the 
 
 CLI tool for interactive browser and Appium automation. Sessions persist on disk; every command is stateless.
 
+## Install
+
+```bash
+npm install -g webdriverio-execute
+```
+
+Verify the CLI is available before running any commands:
+
+```bash
+which wdiox        # should print a path — if not, install first
+wdiox --version    # confirms the binary works
+```
+
 ## When to Use
 
 - Explore a live page or app without writing a test file

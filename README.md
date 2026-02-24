@@ -1,4 +1,4 @@
-# wdiox
+# wdiox — WebdriverIO Execute
 
 Interactive browser and app CLI for developers, powered by [WebdriverIO](https://webdriver.io).
 
