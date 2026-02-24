@@ -1,5 +1,3 @@
-process.env.WDIO_LOG_LEVEL ??= 'error';
-
 import yargs from 'yargs';
 import type { CommandModule } from 'yargs';
 import { hideBin } from 'yargs/helpers';
@@ -17,7 +15,7 @@ const commands = [
   fillCmd, screenshotCmd, sessionListCmd,
 ] as unknown as CommandModule[];
 
-async function main () {
+export async function run() {
 
   // webdriverio's attach() can spawn async BiDi connections that fail after
   // the function returns (e.g. stale session). Suppress these so the CLI
@@ -48,8 +46,3 @@ async function main () {
   // webdriverio keeps HTTP agents alive — force clean exit after command completes
   process.exit(0);
 }
-
-main().catch((err: unknown) => {
-  console.error('✗ WebdriverIO Execute failed:', err instanceof Error ? err.message : String(err));
-  process.exit(1);
-});

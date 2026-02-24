@@ -10,7 +10,7 @@
   "homepage": "https://github.com/Winify/webdriverio-execute",
   "license": "MIT",
   "bin": {
-    "wdiox": "./build/cli.js"
+    "wdiox": "./bin/wdiox.js"
   },
   "engines": {
     "node": ">=18.20.0"
@@ -28,6 +28,7 @@
   },
   "type": "module",
   "files": [
+    "bin",
     "build",
     "README.md"
   ],
