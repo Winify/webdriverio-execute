@@ -73,29 +73,50 @@ wdiox type <ref> <text>           # → fill
 
 For Appium, prefer `[accessibility-id: …]` or `[resource-id: …]` over raw XPath.
 
-## Common Use Cases
+## Workflow Pattern
 
-### Explore a page interactively
+Every command is stateless and composable. Build multi-step flows without writing test code.
+
+**Core loop: snapshot → read refs → act → sleep (if needed) → snapshot → repeat**
+
+### Browser: Login flow
 ```bash
 wdiox open https://app.example.com/login
 wdiox snapshot
-# → e1  input[email]  "Email"  #email
-# → e2  input[password]  "Password"  #password
-# → e3  button  "Sign in"  button*=Sign in
+# → e1  input[email]   "Email"     #email
+# → e2  input[password] "Password" #password
+# → e3  button          "Sign in"  button*=Sign in
 wdiox fill e1 "user@example.com"
-wdiox fill e2 "$PASSWORD"          # use env vars for secrets, never hardcode
+wdiox fill e2 "$PASSWORD"    # always use env vars for secrets
 wdiox click e3
-wdiox snapshot          # re-snapshot after navigation
+sleep 2                      # wait for page transition
+wdiox snapshot               # re-snapshot on new page
 ```
 
-### Automate a mobile app
+### Mobile: Multi-step navigation (Appium)
 ```bash
-wdiox open --app ./app.apk --device "emulator-5554" \
-  --no-accept-alert     # override alert defaults
-wdiox snapshot
-wdiox click e3          # "Accept All Cookies"
-wdiox snapshot
+wdiox open --app "app.apk" --device "emulator-5554" \
+  && wdiox snapshot \
+  && echo "---- Navigate to account ----" \
+  && wdiox click e4 && sleep 1 && wdiox snapshot \
+  && wdiox click e15 && sleep 1 && wdiox snapshot \
+  && echo "---- Log in ----" \
+  && wdiox click e2 && wdiox snapshot \
+  && wdiox type e3 john@doe.com \
+  && wdiox type e5 "$PASSWORD" \
+  && wdiox click e10
 ```
+
+### `sleep` in chained commands
+
+`sleep` is only needed when chaining commands in a single shell expression (with `&&`). When an agent runs commands one at a time, the thinking time between invocations is enough for a stable app or page to settle.
+
+| Situation (chained only) | Recommended |
+|--------------------------|-------------|
+| Page navigation / route change | `sleep 2` before next snapshot |
+| Animation or drawer opening | `sleep 1` before next snapshot |
+| Form submit / API call | `sleep 2–3` before next snapshot |
+| Simple DOM update (no nav) | No sleep needed |
 
 ## Open Flags
 
