@@ -1,5 +1,5 @@
 ---
-name: webdriverio-execute
+name: wdiox-usage
 description: Use when automating a browser or mobile app interactively from the CLI, inspecting page elements, clicking or filling inputs by snapshot reference, or scripting multi-step browser workflows without writing test code.
 ---
 
