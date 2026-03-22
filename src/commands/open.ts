@@ -118,6 +118,7 @@ export async function handler (argv: ArgumentsCamelCase<OpenArgs>) {
     capabilities['appium:autoDismissAlerts'] = argv.autoDismiss;
   } else {
     capabilities.browserName = argv.browser;
+    capabilities['wdio:chromedriverOptions'] = { spawnOpts: { detached: true } };
   }
 
   const remoteOpts: Record<string, unknown> = { capabilities, logLevel: process.env.WDIO_LOG_LEVEL ?? 'error' };
