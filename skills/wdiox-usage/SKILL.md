@@ -1,6 +1,6 @@
 ---
 name: wdiox-usage
-description: Use when automating a browser or mobile app interactively from the CLI, inspecting page elements, clicking or filling inputs by snapshot reference, or scripting multi-step browser workflows without writing test code.
+description: Use when automating a browser or mobile app from the CLI via snapshot element refs, attaching to a running Chrome instance via CDP remote debugging, controlling an Android emulator or iOS simulator via Appium, or scripting multi-step UI workflows without writing test code.
 ---
 
 # wdiox — WebdriverIO Execute
@@ -125,35 +125,11 @@ wdiox open --app "app.apk" --device "emulator-5554" \
 | Form submit / API call | `sleep 2–3` before next snapshot |
 | Simple DOM update (no nav) | No sleep needed |
 
-## Open Flags
-
-| Flag                  | Default        | Notes                                      |
-|-----------------------|----------------|--------------------------------------------|
-| `--browser`           | `chrome`       | `chrome`, `firefox`, `edge`, `safari`      |
-| `--app`               | —              | Path to `.apk`, `.ipa`, or `.app`          |
-| `--device`            | `emulator-5554`| Device name for Appium                     |
-| `--platform`          | auto-detected  | `android` or `ios`                         |
-| `--hostname`          | `localhost`    | WebDriver/Appium server hostname            |
-| `--port`              | `4723`/`4444`  | Server port                                |
-| `--grant-permissions` | `true`         | Auto-grant app permissions (Appium)        |
-| `--accept-alert`      | `true`         | Auto-accept native alerts (Appium)         |
-| `--auto-dismiss`      | `false`        | Auto-dismiss native alerts (Appium)        |
-| `--attach`            | `false`        | Attach to an already-running browser or app instead of launching a new one |
-| `--debug-port`        | `9222`         | Chrome remote debugging port (used with `--attach`) |
-| `--debug-host`        | `localhost`    | Chrome remote debugging host (used with `--attach`) |
-| `--session` / `-s`    | `default`      | Name for this session                      |
-
-## Snapshot Flags
-
-| Flag            | Default | Notes                                                              |
-|-----------------|---------|--------------------------------------------------------------------|
-| `--visible`     | `true`  | Snapshot only viewport elements; `--no-visible` captures all      |
-| `WDIO_SESSION`  | `default` | Env var to set default session name globally                     |
-
 ## Supporting Files
 
-- For step-by-step instructions on launching Chrome with your real browser profile (cookies, logins) for use with `wdiox open --attach`, see [launch-chrome-remote-debugging.md](launch-chrome-remote-debugging.md)
-- For starting an Android emulator or iOS simulator with Appium before running `wdiox open`, see [start-mobile-environment.md](start-mobile-environment.md)
+- [flags.md](flags.md) — full `open` and `snapshot` flag reference
+- [launch-chrome-remote-debugging.md](launch-chrome-remote-debugging.md) — launch Chrome with your real profile for `wdiox open --attach`
+- [start-mobile-environment.md](start-mobile-environment.md) — start Android emulator / iOS simulator and Appium
 
 ## Security Notes
 
@@ -165,4 +141,3 @@ wdiox open --app "app.apk" --device "emulator-5554" \
 - **Running `click` before `snapshot`** — refs file won't exist; always snapshot first
 - **Stale refs after navigation** — re-run `snapshot` after page changes
 - **Element not in snapshot** — it may be below the fold; try `wdiox snapshot --no-visible`
-- **Mobile session shows `App: unknown`** — close and reopen session; old sessions predate the fix that preserves `appium:app` in metadata
