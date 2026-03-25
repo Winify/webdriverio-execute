@@ -9,6 +9,8 @@
   "author": "Vince Graics <wince17@gmail.com>",
   "homepage": "https://github.com/Winify/webdriverio-execute",
   "license": "MIT",
+  "main": "./bin/wdiox.js",
+  "types": "./build/cli.d.ts",
   "bin": {
     "wdiox": "./bin/wdiox.js"
   },
@@ -32,7 +34,6 @@
     "build",
     "README.md"
   ],
-  "types": "./dist/index.d.ts",
   "scripts": {
     "bundle": "rimraf build && tsup",
     "postbundle": "pnpm pack",
