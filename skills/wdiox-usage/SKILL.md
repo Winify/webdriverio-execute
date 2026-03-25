@@ -153,6 +153,7 @@ wdiox open --app "app.apk" --device "emulator-5554" \
 ## Supporting Files
 
 - For step-by-step instructions on launching Chrome with your real browser profile (cookies, logins) for use with `wdiox open --attach`, see [launch-chrome-remote-debugging.md](launch-chrome-remote-debugging.md)
+- For starting an Android emulator or iOS simulator with Appium before running `wdiox open`, see [start-mobile-environment.md](start-mobile-environment.md)
 
 ## Security Notes
 
