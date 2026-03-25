@@ -40,6 +40,13 @@ wdiox fill e1 "hello@example.com"
 wdiox screenshot /tmp/page.png
 wdiox close
 
+# Attach to already-running browser (Chrome DevTools Protocol)
+wdiox open --attach               # attaches to chrome on localhost:9222
+wdiox open --attach --debug-port 9333 --debug-host 127.0.0.1
+
+# Attach to already-running mobile app (Appium)
+wdiox open --attach --device "emulator-5554" --platform android
+
 # Mobile (Appium)
 wdiox open --app ./app.apk --device "emulator-5554"
 wdiox snapshot                    # mobile elements → e1, e2, …
@@ -125,9 +132,15 @@ wdiox open --app "app.apk" --device "emulator-5554" \
 | `--browser`           | `chrome`       | `chrome`, `firefox`, `edge`, `safari`      |
 | `--app`               | —              | Path to `.apk`, `.ipa`, or `.app`          |
 | `--device`            | `emulator-5554`| Device name for Appium                     |
+| `--platform`          | auto-detected  | `android` or `ios`                         |
+| `--hostname`          | `localhost`    | WebDriver/Appium server hostname            |
+| `--port`              | `4723`/`4444`  | Server port                                |
 | `--grant-permissions` | `true`         | Auto-grant app permissions (Appium)        |
 | `--accept-alert`      | `true`         | Auto-accept native alerts (Appium)         |
 | `--auto-dismiss`      | `false`        | Auto-dismiss native alerts (Appium)        |
+| `--attach`            | `false`        | Attach to an already-running browser or app instead of launching a new one |
+| `--debug-port`        | `9222`         | Chrome remote debugging port (used with `--attach`) |
+| `--debug-host`        | `localhost`    | Chrome remote debugging host (used with `--attach`) |
 | `--session` / `-s`    | `default`      | Name for this session                      |
 
 ## Snapshot Flags

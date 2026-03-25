@@ -23,6 +23,13 @@ wdiox open https://example.com
 wdiox open https://example.com --browser firefox
 wdiox open --app /path/to/app.apk --device "emulator-5554"
 wdiox open --app /path/to/app.ipa --device "iPhone 15"
+
+# Attach to an already-running Chrome instance (via CDP)
+wdiox open --attach
+wdiox open --attach --debug-port 9333 --debug-host 127.0.0.1
+
+# Attach to an already-running mobile app (Appium)
+wdiox open --attach --device "emulator-5554" --platform android
 ```
 
 | Option | Default | Description |
@@ -36,6 +43,9 @@ wdiox open --app /path/to/app.ipa --device "iPhone 15"
 | `--grant-permissions` | `true` | Auto-grant app permissions (Appium) |
 | `--accept-alert` | `true` | Auto-accept native alerts (Appium) |
 | `--auto-dismiss` | `false` | Auto-dismiss native alerts (Appium) |
+| `--attach` | `false` | Attach to an already-running browser or app instead of launching a new one |
+| `--debug-port` | `9222` | Chrome remote debugging port (used with `--attach`) |
+| `--debug-host` | `localhost` | Chrome remote debugging host (used with `--attach`) |
 | `--session` | `default` | Session name |
 
 If a session with the given name is already active, you'll be prompted to close it first.
