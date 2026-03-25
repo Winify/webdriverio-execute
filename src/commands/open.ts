@@ -4,6 +4,7 @@ import type { Capabilities } from '@wdio/types';
 import { attach, remote } from 'webdriverio';
 
 import { writeSession, readSession, getSessionDir, buildAttachOptions, deleteSessionFiles } from '../session.js';
+import { waitForCDP, closeStaleMappers, restoreAndSwitchToActiveTab } from '../cdp.js';
 
 export const command = ['open [url]', 'new [url]', 'start [url]'];
 export const desc = 'Open a browser or Appium session';
@@ -60,6 +61,21 @@ export const builder = (yargs: Argv) => {
       type: 'boolean',
       default: false,
       describe: 'Auto-dismiss native alerts (Appium only)',
+    })
+    .option('attach', {
+      type: 'boolean',
+      default: false,
+      describe: 'Attach to an already-running browser or app instead of launching a new one',
+    })
+    .option('debug-port', {
+      type: 'number',
+      default: 9222,
+      describe: 'Chrome remote debugging port (used with --attach)',
+    })
+    .option('debug-host', {
+      type: 'string',
+      default: 'localhost',
+      describe: 'Chrome remote debugging host (used with --attach)',
     });
 };
 
@@ -72,10 +88,66 @@ interface OpenArgs {
   platform?: string
   port?: number
   hostname?: string
+  path?: string
   grantPermissions: boolean
   acceptAlert: boolean
   autoDismiss: boolean
+  attach: boolean
+  debugPort: number
+  debugHost: string
   _sessionsDir?: string
+}
+
+async function attachBrowser(argv: ArgumentsCamelCase<OpenArgs>): Promise<WebdriverIO.Browser> {
+  const host = argv.debugHost ?? 'localhost';
+  const port = argv.debugPort ?? 9222;
+
+  await waitForCDP(host, port);
+  const { activeTabUrl, allTabUrls } = await closeStaleMappers(host, port);
+
+  const browser = await remote({
+    connectionRetryTimeout: 30000,
+    connectionRetryCount: 3,
+    logLevel: (process.env.WDIO_LOG_LEVEL ?? 'error') as WebdriverIO.Config['logLevel'],
+    capabilities: {
+      browserName: 'chrome',
+      unhandledPromptBehavior: 'dismiss',
+      webSocketUrl: false,
+      'goog:chromeOptions': {
+        debuggerAddress: `${host}:${port}`,
+      },
+    },
+  });
+
+  if (argv.url) {
+    await browser.url(argv.url);
+  } else if (activeTabUrl) {
+    await restoreAndSwitchToActiveTab(browser, activeTabUrl, allTabUrls);
+  }
+
+  return browser;
+}
+
+async function attachMobile(argv: ArgumentsCamelCase<OpenArgs>): Promise<WebdriverIO.Browser> {
+  const platform = argv.platform ?? 'android';
+  const capabilities: Record<string, unknown> = {
+    platformName: platform === 'ios' ? 'iOS' : 'Android',
+    'appium:deviceName': argv.device ?? 'emulator-5554',
+    'appium:automationName': platform === 'ios' ? 'XCUITest' : 'UiAutomator2',
+    'appium:noReset': true,
+    'appium:newCommandTimeout': 300,
+    'appium:autoGrantPermissions': argv.grantPermissions,
+    'appium:autoAcceptAlerts': argv.acceptAlert,
+    'appium:autoDismissAlerts': argv.autoDismiss,
+  };
+
+  return remote({
+    hostname: argv.hostname ?? 'localhost',
+    port: argv.port ?? 4723,
+    path: argv.path ?? '/',
+    logLevel: (process.env.WDIO_LOG_LEVEL ?? 'error') as WebdriverIO.Config['logLevel'],
+    capabilities,
+  } as unknown as Capabilities.WebdriverIOConfig);
 }
 
 export async function handler (argv: ArgumentsCamelCase<OpenArgs>) {
@@ -102,9 +174,26 @@ export async function handler (argv: ArgumentsCamelCase<OpenArgs>) {
     await deleteSessionFiles(sessionName, sessionsDir);
   }
 
+  if (argv.attach) {
+    const isMobileAttach = !!argv.device;
+    const browser = isMobileAttach ? await attachMobile(argv) : await attachBrowser(argv);
+    const opts = browser.options as Capabilities.WebdriverIOConfig;
+    await writeSession(sessionName, {
+      sessionId: browser.sessionId,
+      hostname: opts?.hostname || 'localhost',
+      port: opts?.port || 4444,
+      capabilities: browser.capabilities as Record<string, unknown>,
+      created: new Date().toISOString(),
+      url: argv.url || (await browser.getUrl().catch(() => '')),
+      isAttached: true,
+    }, sessionsDir);
+    console.log(`Session "${sessionName}" attached.`);
+    return;
+  }
+
   const capabilities: Record<string, unknown> = {};
 
-  const isMobile = !!argv.app;
+  const isMobile = !!argv.app || !!argv.device;
   if (isMobile) {
     const platform = argv.platform ?? (argv.app?.endsWith('.apk') ? 'android' : 'ios');
 

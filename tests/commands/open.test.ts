@@ -3,8 +3,11 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 
-const { mockUrlFn, mockQuestion } = vi.hoisted(() => ({
+const { mockUrlFn, mockGetUrl, mockGetWindowHandles, mockSwitchToWindow, mockQuestion } = vi.hoisted(() => ({
   mockUrlFn: vi.fn(),
+  mockGetUrl: vi.fn().mockResolvedValue('https://example.com'),
+  mockGetWindowHandles: vi.fn().mockResolvedValue([]),
+  mockSwitchToWindow: vi.fn(),
   mockQuestion: vi.fn().mockResolvedValue('n'),
 }));
 vi.mock('webdriverio', () => ({
@@ -13,8 +16,16 @@ vi.mock('webdriverio', () => ({
     capabilities: { browserName: 'chrome' },
     options: { hostname: 'localhost', port: 4444 },
     url: mockUrlFn,
+    getUrl: mockGetUrl,
+    getWindowHandles: mockGetWindowHandles,
+    switchToWindow: mockSwitchToWindow,
   }),
   attach: vi.fn().mockResolvedValue({ deleteSession: vi.fn() }),
+}));
+vi.mock('../../src/cdp.js', () => ({
+  waitForCDP: vi.fn().mockResolvedValue(undefined),
+  closeStaleMappers: vi.fn().mockResolvedValue({ activeTabUrl: 'https://example.com', allTabUrls: ['https://example.com'] }),
+  restoreAndSwitchToActiveTab: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock('node:readline/promises', () => ({
   default: {
@@ -26,6 +37,7 @@ vi.mock('node:readline/promises', () => ({
 }));
 
 import { remote } from 'webdriverio';
+import { waitForCDP, closeStaleMappers } from '../../src/cdp.js';
 import { handler } from '../../src/commands/open.js';
 import { readSession } from '../../src/session.js';
 
@@ -157,5 +169,145 @@ describe('open command', () => {
         }),
       }),
     );
+  });
+});
+
+describe('open command --attach', () => {
+  let logSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(async () => {
+    await fs.mkdir(TEST_DIR, { recursive: true });
+    logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    mockUrlFn.mockClear();
+    vi.mocked(remote).mockClear();
+    vi.mocked(waitForCDP).mockClear();
+    vi.mocked(closeStaleMappers).mockClear();
+  });
+
+  afterEach(async () => {
+    await fs.rm(TEST_DIR, { recursive: true, force: true });
+    logSpy.mockRestore();
+  });
+
+  it('should write session with isAttached: true for browser attach', async () => {
+    await handler({
+      browser: 'chrome',
+      session: 'attached',
+      attach: true,
+      debugHost: 'localhost',
+      debugPort: 9222,
+      _sessionsDir: TEST_DIR,
+    } as unknown as Parameters<typeof handler>[0]);
+
+    const meta = await readSession('attached', TEST_DIR);
+    expect(meta).not.toBeNull();
+    expect(meta!.isAttached).toBe(true);
+  });
+
+  it('should call remote with goog:chromeOptions.debuggerAddress for browser attach', async () => {
+    await handler({
+      browser: 'chrome',
+      session: 'attached',
+      attach: true,
+      debugHost: 'localhost',
+      debugPort: 9222,
+      _sessionsDir: TEST_DIR,
+    } as unknown as Parameters<typeof handler>[0]);
+
+    expect(remote).toHaveBeenCalledWith(
+      expect.objectContaining({
+        capabilities: expect.objectContaining({
+          'goog:chromeOptions': expect.objectContaining({
+            debuggerAddress: 'localhost:9222',
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('should call waitForCDP and closeStaleMappers for browser attach', async () => {
+    await handler({
+      browser: 'chrome',
+      session: 'attached',
+      attach: true,
+      debugHost: '127.0.0.1',
+      debugPort: 9333,
+      _sessionsDir: TEST_DIR,
+    } as unknown as Parameters<typeof handler>[0]);
+
+    expect(waitForCDP).toHaveBeenCalledWith('127.0.0.1', 9333);
+    expect(closeStaleMappers).toHaveBeenCalledWith('127.0.0.1', 9333);
+  });
+
+  it('should navigate to URL if provided during browser attach', async () => {
+    await handler({
+      browser: 'chrome',
+      session: 'attached',
+      attach: true,
+      debugHost: 'localhost',
+      debugPort: 9222,
+      url: 'https://example.com',
+      _sessionsDir: TEST_DIR,
+    } as unknown as Parameters<typeof handler>[0]);
+
+    expect(mockUrlFn).toHaveBeenCalledWith('https://example.com');
+  });
+
+  it('should log "attached" message', async () => {
+    await handler({
+      browser: 'chrome',
+      session: 'myapp',
+      attach: true,
+      debugHost: 'localhost',
+      debugPort: 9222,
+      _sessionsDir: TEST_DIR,
+    } as unknown as Parameters<typeof handler>[0]);
+
+    expect(logSpy).toHaveBeenCalledWith('Session "myapp" attached.');
+  });
+
+  it('should build mobile attach capabilities with noReset: true when --device is provided', async () => {
+    await handler({
+      browser: 'chrome',
+      session: 'mobile-attach',
+      attach: true,
+      device: 'emulator-5554',
+      platform: 'android',
+      grantPermissions: true,
+      acceptAlert: true,
+      autoDismiss: false,
+      _sessionsDir: TEST_DIR,
+    } as unknown as Parameters<typeof handler>[0]);
+
+    expect(remote).toHaveBeenCalledWith(
+      expect.objectContaining({
+        capabilities: expect.objectContaining({
+          'appium:noReset': true,
+          'appium:deviceName': 'emulator-5554',
+          platformName: 'Android',
+        }),
+      }),
+    );
+    // Should NOT have appium:app set
+    const call = vi.mocked(remote).mock.calls[0][0] as unknown as Record<string, unknown>;
+    const caps = call.capabilities as Record<string, unknown>;
+    expect(caps['appium:app']).toBeUndefined();
+  });
+
+  it('should write isAttached: true for mobile attach', async () => {
+    await handler({
+      browser: 'chrome',
+      session: 'mobile-attach',
+      attach: true,
+      device: 'emulator-5554',
+      platform: 'android',
+      grantPermissions: true,
+      acceptAlert: true,
+      autoDismiss: false,
+      _sessionsDir: TEST_DIR,
+    } as unknown as Parameters<typeof handler>[0]);
+
+    const meta = await readSession('mobile-attach', TEST_DIR);
+    expect(meta!.isAttached).toBe(true);
   });
 });

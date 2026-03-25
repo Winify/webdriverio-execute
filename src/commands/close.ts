@@ -29,6 +29,13 @@ function killProcess(pid: number): void {
 
 export const handler = withSession<CloseArgs>(async (argv: ArgumentsCamelCase<CloseArgs>, meta, sessionsDir) => {
   const sessionName = argv.session as string;
+
+  if (meta.isAttached) {
+    await deleteSessionFiles(sessionName, sessionsDir);
+    console.log(`Session "${sessionName}" detached.`);
+    return;
+  }
+
   const caps = meta.capabilities as Record<string, unknown>;
   const browserPid = typeof caps['goog:processID'] === 'number' ? caps['goog:processID'] : undefined;
   const driverPid = typeof caps['wdio:driverPID'] === 'number' ? caps['wdio:driverPID'] : undefined;

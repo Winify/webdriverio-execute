@@ -12,6 +12,7 @@ export interface SessionMetadata {
   capabilities: Record<string, unknown>
   created: string
   url: string
+  isAttached?: boolean
 }
 
 export interface SessionEntry {
