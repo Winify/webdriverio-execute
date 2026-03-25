@@ -2,7 +2,7 @@ import wdioEslint from '@wdio/eslint';
 
 export default wdioEslint.config([
   {
-    ignores: ['build', 'node_modules'],
+    ignores: ['build', 'node_modules', 'bin'],
   },
   {
     rules: {

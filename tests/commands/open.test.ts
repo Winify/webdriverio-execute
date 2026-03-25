@@ -108,6 +108,31 @@ describe('open command', () => {
     expect(mockUrlFn).not.toHaveBeenCalled();
   });
 
+  it('should not prompt when --attach replaces an existing session', async () => {
+    // Create an existing session first
+    await handler({
+      url: 'https://example.com',
+      browser: 'chrome',
+      session: 'reattach',
+      _sessionsDir: TEST_DIR,
+    } as unknown as Parameters<typeof handler>[0]);
+
+    mockQuestion.mockClear();
+    vi.mocked(remote).mockClear();
+
+    await handler({
+      browser: 'chrome',
+      session: 'reattach',
+      attach: true,
+      debugHost: 'localhost',
+      debugPort: 9222,
+      _sessionsDir: TEST_DIR,
+    } as unknown as Parameters<typeof handler>[0]);
+
+    expect(mockQuestion).not.toHaveBeenCalled();
+    expect(remote).toHaveBeenCalledTimes(1);
+  });
+
   it('should prompt and abort if user declines when session exists', async () => {
     await handler({
       url: 'https://example.com',

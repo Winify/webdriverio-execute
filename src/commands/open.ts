@@ -156,20 +156,22 @@ export async function handler (argv: ArgumentsCamelCase<OpenArgs>) {
 
   const existing = await readSession(sessionName, sessionsDir);
   if (existing) {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    const context = existing.url || (existing.capabilities['appium:app'] as string) || '';
-    const answer = await rl.question(`Session [${sessionName}] is already active${context ? ` (${context})` : ''}.\nClose it and start a new one? (y/N) `);
-    rl.close();
+    if (!argv.attach) {
+      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      const context = existing.url || (existing.capabilities['appium:app'] as string) || '';
+      const answer = await rl.question(`Session [${sessionName}] is already active${context ? ` (${context})` : ''}.\nClose it and start a new one? (y/N) `);
+      rl.close();
 
-    if (answer.trim().toLowerCase() !== 'y') {
-      return;
-    }
+      if (answer.trim().toLowerCase() !== 'y') {
+        return;
+      }
 
-    try {
-      const old = await attach(buildAttachOptions(existing));
-      await old.deleteSession();
-    } catch {
-      // Already dead
+      try {
+        const old = await attach(buildAttachOptions(existing));
+        await old.deleteSession();
+      } catch {
+        // Already dead
+      }
     }
     await deleteSessionFiles(sessionName, sessionsDir);
   }
@@ -184,7 +186,7 @@ export async function handler (argv: ArgumentsCamelCase<OpenArgs>) {
       port: opts?.port || 4444,
       capabilities: browser.capabilities as Record<string, unknown>,
       created: new Date().toISOString(),
-      url: argv.url || (await browser.getUrl().catch(() => '')),
+      url: argv.url || (isMobileAttach ? '' : await browser.getUrl().catch(() => '')),
       isAttached: true,
     }, sessionsDir);
     console.log(`Session "${sessionName}" attached.`);
