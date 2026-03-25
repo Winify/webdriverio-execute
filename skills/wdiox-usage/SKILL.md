@@ -1,6 +1,6 @@
 ---
 name: wdiox-usage
-description: Use when automating a browser or mobile app interactively from the CLI, inspecting page elements, clicking or filling inputs by snapshot reference, or scripting multi-step browser workflows without writing test code.
+description: Use when automating a browser or mobile app from the CLI via snapshot element refs, attaching to a running Chrome instance via CDP remote debugging, controlling an Android emulator or iOS simulator via Appium, or scripting multi-step UI workflows without writing test code.
 ---
 
 # wdiox — WebdriverIO Execute
@@ -39,6 +39,13 @@ wdiox click e3
 wdiox fill e1 "hello@example.com"
 wdiox screenshot /tmp/page.png
 wdiox close
+
+# Attach to already-running browser (Chrome DevTools Protocol)
+wdiox open --attach               # attaches to chrome on localhost:9222
+wdiox open --attach --debug-port 9333 --debug-host 127.0.0.1
+
+# Attach to already-running mobile app (Appium)
+wdiox open --attach --device "emulator-5554" --platform android
 
 # Mobile (Appium)
 wdiox open --app ./app.apk --device "emulator-5554"
@@ -118,24 +125,11 @@ wdiox open --app "app.apk" --device "emulator-5554" \
 | Form submit / API call | `sleep 2–3` before next snapshot |
 | Simple DOM update (no nav) | No sleep needed |
 
-## Open Flags
+## Supporting Files
 
-| Flag                  | Default        | Notes                                      |
-|-----------------------|----------------|--------------------------------------------|
-| `--browser`           | `chrome`       | `chrome`, `firefox`, `edge`, `safari`      |
-| `--app`               | —              | Path to `.apk`, `.ipa`, or `.app`          |
-| `--device`            | `emulator-5554`| Device name for Appium                     |
-| `--grant-permissions` | `true`         | Auto-grant app permissions (Appium)        |
-| `--accept-alert`      | `true`         | Auto-accept native alerts (Appium)         |
-| `--auto-dismiss`      | `false`        | Auto-dismiss native alerts (Appium)        |
-| `--session` / `-s`    | `default`      | Name for this session                      |
-
-## Snapshot Flags
-
-| Flag            | Default | Notes                                                              |
-|-----------------|---------|--------------------------------------------------------------------|
-| `--visible`     | `true`  | Snapshot only viewport elements; `--no-visible` captures all      |
-| `WDIO_SESSION`  | `default` | Env var to set default session name globally                     |
+- [flags.md](flags.md) — full `open` and `snapshot` flag reference
+- [launch-chrome-remote-debugging.md](launch-chrome-remote-debugging.md) — launch Chrome with your real profile for `wdiox open --attach`
+- [start-mobile-environment.md](start-mobile-environment.md) — start Android emulator / iOS simulator and Appium
 
 ## Security Notes
 
@@ -147,4 +141,3 @@ wdiox open --app "app.apk" --device "emulator-5554" \
 - **Running `click` before `snapshot`** — refs file won't exist; always snapshot first
 - **Stale refs after navigation** — re-run `snapshot` after page changes
 - **Element not in snapshot** — it may be below the fold; try `wdiox snapshot --no-visible`
-- **Mobile session shows `App: unknown`** — close and reopen session; old sessions predate the fix that preserves `appium:app` in metadata

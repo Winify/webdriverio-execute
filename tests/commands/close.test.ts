@@ -84,3 +84,54 @@ describe('close command', () => {
     expect(read).toBeNull();
   });
 });
+
+describe('close command — attached session', () => {
+  const attachedMeta: SessionMetadata = {
+    sessionId: 'attached-456',
+    hostname: 'localhost',
+    port: 4444,
+    capabilities: { 'goog:chromeOptions': { debuggerAddress: 'localhost:9222' } },
+    created: '2026-02-15T10:00:00Z',
+    url: 'https://example.com',
+    isAttached: true,
+  };
+
+  let logSpy: ReturnType<typeof vi.spyOn>;
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(async () => {
+    await fs.mkdir(TEST_DIR, { recursive: true });
+    await writeSession('attached', attachedMeta, TEST_DIR);
+    logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockDeleteSession.mockClear();
+    vi.mocked(attach).mockClear();
+  });
+
+  afterEach(async () => {
+    await fs.rm(TEST_DIR, { recursive: true, force: true });
+    logSpy.mockRestore();
+    errorSpy.mockRestore();
+  });
+
+  it('should not call deleteSession for attached sessions', async () => {
+    await handler({ session: 'attached', _sessionsDir: TEST_DIR } as unknown as Parameters<typeof handler>[0]);
+    expect(mockDeleteSession).not.toHaveBeenCalled();
+  });
+
+  it('should not call attach() for attached sessions', async () => {
+    await handler({ session: 'attached', _sessionsDir: TEST_DIR } as unknown as Parameters<typeof handler>[0]);
+    expect(attach).not.toHaveBeenCalled();
+  });
+
+  it('should clean up session files for attached sessions', async () => {
+    await handler({ session: 'attached', _sessionsDir: TEST_DIR } as unknown as Parameters<typeof handler>[0]);
+    const read = await readSession('attached', TEST_DIR);
+    expect(read).toBeNull();
+  });
+
+  it('should log "detached" instead of "closed"', async () => {
+    await handler({ session: 'attached', _sessionsDir: TEST_DIR } as unknown as Parameters<typeof handler>[0]);
+    expect(logSpy).toHaveBeenCalledWith('Session "attached" detached.');
+  });
+});
