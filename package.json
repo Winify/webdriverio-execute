@@ -41,7 +41,9 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint --fix && pnpm run typecheck",
-    "link": "pnpm run bundle && pnpm i && pnpm link --global"
+    "link": "pnpm run bundle && pnpm i && pnpm link --global",
+    "prepare": "husky",
+    "release": "release-it"
   },
   "dependencies": {
     "@wdio/mcp": "^2.5.3",
@@ -50,6 +52,7 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
+    "@release-it/conventional-changelog": "^10.0.6",
     "@types/node": "^24.12.0",
     "@types/yargs": "^17.0.35",
     "@wdio/eslint": "^0.1.3",
@@ -61,6 +64,28 @@
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^2.1.9"
+  },
+  "lint-staged": {
+    "*.{ts,mts,cts}": "eslint --fix"
+  },
+  "release-it": {
+    "git": {
+      "commitMessage": "chore: release v${version}",
+      "tagName": "v${version}"
+    },
+    "npm": {
+      "publish": true
+    },
+    "github": {
+      "release": true,
+      "releaseName": "v${version}"
+    },
+    "plugins": {
+      "@release-it/conventional-changelog": {
+        "preset": "conventionalcommits",
+        "infile": "CHANGELOG.md"
+      }
+    }
   },
   "publishConfig": {
     "access": "public"
