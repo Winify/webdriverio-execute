@@ -150,6 +150,10 @@ wdiox open --app "app.apk" --device "emulator-5554" \
 | `--visible`     | `true`  | Snapshot only viewport elements; `--no-visible` captures all      |
 | `WDIO_SESSION`  | `default` | Env var to set default session name globally                     |
 
+## Supporting Files
+
+- For step-by-step instructions on launching Chrome with your real browser profile (cookies, logins) for use with `wdiox open --attach`, see [launch-chrome-remote-debugging.md](launch-chrome-remote-debugging.md)
+
 ## Security Notes
 
 - **Never hardcode secrets** — pass credentials via env vars (`wdiox fill e2 "$PASSWORD"`) not as literal strings in commands or scripts
