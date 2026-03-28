@@ -98,6 +98,7 @@ fabric.properties
 # Log files
 *.log
 
-CLAUDE.md
+CLAUDE.local.md
+.claude/settings.local.json
 
 examples/logs

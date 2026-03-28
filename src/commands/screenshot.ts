@@ -1,6 +1,7 @@
 import type { ArgumentsCamelCase, Argv } from 'yargs';
 import { attach } from 'webdriverio';
 
+import { getStepsPath, appendStep } from '../steps.js';
 import { buildAttachOptions, withSession } from '../session.js';
 
 export const command = 'screenshot [path]';
@@ -19,12 +20,28 @@ interface ScreenshotArgs {
   _sessionsDir?: string
 }
 
-export const handler = withSession<ScreenshotArgs>(async (argv: ArgumentsCamelCase<ScreenshotArgs>, meta) => {
+export const handler = withSession<ScreenshotArgs>(async (argv: ArgumentsCamelCase<ScreenshotArgs>, meta, sessionsDir) => {
   const browser = await attach(buildAttachOptions(meta));
-
+  const sessionName = argv.session as string;
+  const stepsPath = getStepsPath(sessionName, sessionsDir);
   const filePath = (argv.path as string) ||
         `screenshot-${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
+  const start = Date.now();
+  let error: string | undefined;
 
-  await browser.saveScreenshot(filePath);
-  console.log(`Screenshot saved to ${filePath}`);
+  try {
+    await browser.saveScreenshot(filePath);
+    console.log(`Screenshot saved to ${filePath}`);
+  } catch (err) {
+    error = err instanceof Error ? err.message : String(err);
+    console.error(`Error saving screenshot: ${error}`);
+  }
+
+  await appendStep(stepsPath, {
+    tool: 'screenshot',
+    params: { path: filePath },
+    status: error ? 'error' : 'ok',
+    durationMs: Date.now() - start,
+    error,
+  });
 });

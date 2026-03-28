@@ -13,6 +13,7 @@ export interface SessionMetadata {
   created: string
   url: string
   isAttached?: boolean
+  stepsPath?: string
 }
 
 export interface SessionEntry {
@@ -63,6 +64,13 @@ export function getRefsPath (name: string, baseDir?: string): string {
 }
 
 /**
+ * Returns the file path for a session's steps JSON file.
+ */
+export function getStepsPath (name: string, baseDir?: string): string {
+  return path.join(getSessionDir(baseDir), `${name}.steps.json`);
+}
+
+/**
  * Writes session metadata to disk, creating the directory if needed.
  */
 export async function writeSession (
@@ -96,7 +104,7 @@ export async function readSession (
 }
 
 /**
- * Deletes both the .json and .refs.json files for a session.
+ * Deletes the .json, .refs.json, and .steps.json files for a session.
  * Does not throw if the files do not exist.
  */
 export async function deleteSessionFiles (
@@ -105,9 +113,11 @@ export async function deleteSessionFiles (
 ): Promise<void> {
   const sessionPath = getSessionPath(name, baseDir);
   const refsPath = getRefsPath(name, baseDir);
+  const stepsPath = getStepsPath(name, baseDir);
   await Promise.all([
     fs.rm(sessionPath, { force: true }),
     fs.rm(refsPath, { force: true }),
+    fs.rm(stepsPath, { force: true }),
   ]);
 }
 
