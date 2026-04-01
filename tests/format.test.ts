@@ -4,6 +4,8 @@ import {
   formatBrowserElement,
   formatMobileElement,
   formatSessionList,
+  formatSteps,
+  formatStepsList,
 } from '../src/format.js';
 
 import type {
@@ -11,6 +13,7 @@ import type {
   MobileElementFormatInput,
   SessionListEntry,
 } from '../src/format.js';
+import type { RecordedStep } from '../src/steps.js';
 
 describe('formatBrowserElement', () => {
   it('should format a button with accessible name', () => {
@@ -180,5 +183,38 @@ describe('formatSessionList', () => {
     const headerNameEnd = lines[0].indexOf('BROWSER');
     const dataNameEnd = lines[1].indexOf('chrome');
     expect(headerNameEnd).toBe(dataNameEnd);
+  });
+});
+
+describe('formatSteps', () => {
+  it('should return message when steps array is empty', () => {
+    expect(formatSteps([])).toBe('No steps recorded.');
+  });
+
+  it('should format a table with step columns', () => {
+    const steps: RecordedStep[] = [
+      { index: 1, tool: 'click', params: { ref: 'e1' }, status: 'ok', durationMs: 89, timestamp: '2026-04-01T10:00:00.000Z' },
+      { index: 2, tool: 'type', params: { ref: 'e2', text: 'hello' }, status: 'error', error: 'Not found', durationMs: 12, timestamp: '2026-04-01T10:00:01.000Z' },
+    ];
+    const result = formatSteps(steps);
+    expect(result).toContain('#');
+    expect(result).toContain('click');
+    expect(result).toContain('type');
+    expect(result).toContain('ok');
+    expect(result).toContain('error');
+    expect(result).toContain('89ms');
+  });
+});
+
+describe('formatStepsList', () => {
+  it('should return message when no archived files', () => {
+    expect(formatStepsList([])).toBe('No archived steps files found.');
+  });
+
+  it('should list archived file names', () => {
+    const files = ['default-20260401120000.steps.json', 'other-20260401130000.steps.json'];
+    const result = formatStepsList(files);
+    expect(result).toContain('default-20260401120000.steps.json');
+    expect(result).toContain('other-20260401130000.steps.json');
   });
 });

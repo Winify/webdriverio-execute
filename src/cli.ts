@@ -9,10 +9,14 @@ import * as clickCmd from './commands/click.js';
 import * as fillCmd from './commands/type';
 import * as screenshotCmd from './commands/screenshot.js';
 import * as sessionListCmd from './commands/session-list.js';
+import * as navigateCmd from './commands/navigate.js';
+import * as scrollCmd from './commands/scroll.js';
+import * as executeCmd from './commands/execute.js';
+import * as stepsCmd from './commands/steps.js';
 
 const commands = [
   openCmd, closeCmd, snapshotCmd, clickCmd,
-  fillCmd, screenshotCmd, sessionListCmd,
+  fillCmd, screenshotCmd, sessionListCmd, navigateCmd, scrollCmd, executeCmd, stepsCmd,
 ] as unknown as CommandModule[];
 
 export async function run() {

@@ -57,14 +57,14 @@ describe('click command', () => {
     await handler({ ref: 'e1', session: 'default', _sessionsDir: TEST_DIR } as unknown as Parameters<typeof handler>[0]);
     expect(mock$).toHaveBeenCalledWith('button.submit');
     expect(mockClick).toHaveBeenCalled();
-    expect(appendStep).toHaveBeenCalledWith('default', 'click', { ref: 'e1' }, 'ok', expect.any(Number), undefined, expect.any(String));
+    expect(appendStep).toHaveBeenCalledWith('default', 'click', { ref: 'e1', selector: 'button.submit' }, 'ok', expect.any(Number), undefined, expect.any(String));
   });
 
   it('should record error step when click throws', async () => {
     mockClick.mockRejectedValueOnce(new Error('Element not interactable'));
     await handler({ ref: 'e1', session: 'default', _sessionsDir: TEST_DIR } as unknown as Parameters<typeof handler>[0]);
     expect(appendStep).toHaveBeenCalledWith(
-      'default', 'click', { ref: 'e1' }, 'error', expect.any(Number), 'Element not interactable', expect.any(String),
+      'default', 'click', { ref: 'e1', selector: 'button.submit' }, 'error', expect.any(Number), 'Element not interactable', expect.any(String),
     );
   });
 

@@ -34,11 +34,11 @@ export const handler = withSession<ClickArgs>(async (argv: ArgumentsCamelCase<Cl
 
   try {
     await browser.$(result.selector).click();
-    await appendStep(sessionName, 'click', { ref: refKey }, 'ok', Date.now() - startTime, undefined, sessionsDir);
+    await appendStep(sessionName, 'click', { ref: refKey, selector: result.selector }, 'ok', Date.now() - startTime, undefined, sessionsDir);
     console.log(`Clicked ${refKey} (${result.ref.selector})`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await appendStep(sessionName, 'click', { ref: refKey }, 'error', Date.now() - startTime, msg, sessionsDir);
+    await appendStep(sessionName, 'click', { ref: refKey, selector: result.selector }, 'error', Date.now() - startTime, msg, sessionsDir);
     console.error(`Error clicking ${refKey}: ${msg}`);
   }
 });

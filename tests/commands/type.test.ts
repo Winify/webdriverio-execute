@@ -57,7 +57,7 @@ describe('type command', () => {
     expect(mockClearValue).toHaveBeenCalled();
     expect(mockAddValue).toHaveBeenCalledWith('hello@example.com');
     expect(appendStep).toHaveBeenCalledWith(
-      'default', 'type', { ref: 'e1', text: 'hello@example.com' }, 'ok', expect.any(Number), undefined, expect.any(String),
+      'default', 'type', { ref: 'e1', selector: '#email', text: 'hello@example.com' }, 'ok', expect.any(Number), undefined, expect.any(String),
     );
   });
 });

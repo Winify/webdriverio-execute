@@ -245,7 +245,10 @@ export async function handler (argv: ArgumentsCamelCase<OpenArgs>) {
   const mobilePlatform = argv.platform ?? (argv.app?.endsWith('.apk') ? 'android' : 'ios');
   const sessionType = isMobile ? (mobilePlatform === 'ios' ? 'ios' : 'android') : 'browser';
   await initSteps(sessionName, browser.sessionId, sessionType, sessionsDir);
-  await appendStep(sessionName, 'open', { url: argv.url || '', browser: argv.browser }, 'ok', Date.now() - startTime, undefined, sessionsDir);
+  const openParams = isMobile
+    ? { app: argv.app || '', platform: mobilePlatform }
+    : { url: argv.url || '', browser: argv.browser };
+  await appendStep(sessionName, 'open', openParams, 'ok', Date.now() - startTime, undefined, sessionsDir);
 
   console.log(`Session "${sessionName}" started.`);
 }

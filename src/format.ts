@@ -1,3 +1,5 @@
+import type { RecordedStep } from './steps.js';
+
 export interface BrowserElementFormatInput {
   tagName: string
   role?: string
@@ -38,6 +40,35 @@ export function formatMobileElement(ref: string, el: MobileElementFormatInput): 
       : truncate(el.selector);
   const parts = [ref.padEnd(4), el.tagName.padEnd(28), el.text && `"${truncate(el.text)}"`, selector];
   return parts.filter(Boolean).join('  ');
+}
+
+export function formatSteps(steps: RecordedStep[]): string {
+  if (steps.length === 0) return 'No steps recorded.';
+
+  const rows = steps.map((s) => ({
+    '#': String(s.index),
+    TOOL: s.tool,
+    PARAMS: Object.entries(s.params).map(([k, v]) => `${k}=${typeof v === 'object' ? JSON.stringify(v) : String(v)}`).join(' '),
+    STATUS: s.status,
+    DURATION: `${s.durationMs}ms`,
+    TIMESTAMP: s.timestamp,
+  }));
+
+  const keys = ['#', 'TOOL', 'PARAMS', 'STATUS', 'DURATION', 'TIMESTAMP'] as const;
+  const cols = keys.map((key) => ({
+    key,
+    width: Math.max(key.length, ...rows.map((r) => r[key].length)),
+  }));
+
+  const header = cols.map((c) => c.key.padEnd(c.width)).join('  ');
+  const rowLines = rows.map((r) => cols.map((c) => r[c.key].padEnd(c.width)).join('  '));
+
+  return [header, ...rowLines].join('\n');
+}
+
+export function formatStepsList(files: string[]): string {
+  if (files.length === 0) return 'No archived steps files found.';
+  return files.join('\n');
 }
 
 export function formatSessionList(entries: SessionListEntry[]): string {

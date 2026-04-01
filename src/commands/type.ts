@@ -42,11 +42,11 @@ export const handler = withSession<FillArgs>(async (argv: ArgumentsCamelCase<Fil
     const element = await browser.$(result.selector);
     await element.clearValue();
     await element.addValue(argv.text as string);
-    await appendStep(sessionName, 'type', { ref: refKey, text: argv.text as string }, 'ok', Date.now() - startTime, undefined, sessionsDir);
+    await appendStep(sessionName, 'type', { ref: refKey, selector: result.selector, text: argv.text as string }, 'ok', Date.now() - startTime, undefined, sessionsDir);
     console.log(`Filled ${refKey} with "${argv.text}"`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await appendStep(sessionName, 'type', { ref: refKey, text: argv.text as string }, 'error', Date.now() - startTime, msg, sessionsDir);
+    await appendStep(sessionName, 'type', { ref: refKey, selector: result.selector, text: argv.text as string }, 'error', Date.now() - startTime, msg, sessionsDir);
     console.error(`Error: ${refKey} not found on page — the page may have changed. Run wdiox snapshot to refresh.\n${msg}`);
   }
 });
