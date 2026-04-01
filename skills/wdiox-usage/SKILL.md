@@ -5,7 +5,7 @@ description: Use when automating a browser or mobile app from the CLI via snapsh
 
 # wdiox — WebdriverIO Execute
 
-CLI tool for interactive browser and Appium automation. Sessions persist on disk; every command is stateless.
+CLI tool for interactive browser and Appium automation. Sessions persist on disk in `.wdiox/` in the current working directory; every command is stateless.
 
 ## Install
 
@@ -68,7 +68,7 @@ wdiox type <ref> <text>           # → fill
 
 ## Element Refs
 
-`snapshot` writes numbered refs (`e1`, `e2`, …) to `~/.wdio-x/sessions/<name>.refs.json`. Refs resolve to the best available selector:
+`snapshot` writes numbered refs (`e1`, `e2`, …) to `.wdiox/<name>.refs.json`. Refs resolve to the best available selector:
 
 1. `tag*=text` (text match)
 2. `aria/label`
@@ -124,6 +124,19 @@ wdiox open --app "app.apk" --device "emulator-5554" \
 | Animation or drawer opening | `sleep 1` before next snapshot |
 | Form submit / API call | `sleep 2–3` before next snapshot |
 | Simple DOM update (no nav) | No sleep needed |
+
+## Session Artifacts
+
+All files are written to `.wdiox/` in the CWD. Add `.wdiox/` to `.gitignore`.
+
+| File | Lifecycle |
+|------|-----------|
+| `.wdiox/<session>.json` | Created on `open`, deleted on `close` |
+| `.wdiox/<session>.refs.json` | Overwritten on each `snapshot`, deleted on `close` |
+| `.wdiox/<session>-<YYYYMMDDHHmmss>.steps.json` | Created on `open`, **preserved** on `close` — full command log |
+| `.wdiox/screenshots/<session>-screenshot-<YYYYMMDDHHmmss>.png` | Written on `screenshot` (default path) |
+
+The steps file records every action (`open`, `click`, `type`, `snapshot`, `screenshot`, `close`) with index, params, status, duration, and timestamp — matching the `@wdio/mcp` `RecordedStep` schema.
 
 ## Supporting Files
 
