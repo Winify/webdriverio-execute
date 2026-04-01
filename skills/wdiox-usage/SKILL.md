@@ -37,7 +37,13 @@ wdiox snapshot                    # capture viewport elements → assigns e1, e2
 wdiox snapshot --no-visible       # capture ALL elements (including off-screen)
 wdiox click e3
 wdiox fill e1 "hello@example.com"
+wdiox navigate https://example.com/other   # change URL mid-session
+wdiox scroll down                 # scroll page down 500px (browser)
+wdiox scroll up --pixels 1000     # scroll up custom amount
+wdiox execute "return document.title"      # run JS, prints result
 wdiox screenshot /tmp/page.png
+wdiox steps                       # show recorded steps for active session
+wdiox steps --json                # raw JSON output
 wdiox close
 
 # Attach to already-running browser (Chrome DevTools Protocol)
@@ -51,6 +57,9 @@ wdiox open --attach --device "emulator-5554" --platform android
 wdiox open --app ./app.apk --device "emulator-5554"
 wdiox snapshot                    # mobile elements → e1, e2, …
 wdiox click e2
+wdiox scroll down                 # swipe down (uses mobile: scrollGesture)
+wdiox scroll left                 # swipe left — useful for carousels/onboarding
+wdiox execute "mobile: pressKey" --args '{"keycode": 4}'   # Android back
 wdiox close
 
 # Multi-session
@@ -60,10 +69,18 @@ wdiox snapshot --session a
 wdiox ls                          # list all active sessions
 wdiox close --session b
 
+# View step history
+wdiox steps                       # active session table
+wdiox steps --list                # all archived step files
+wdiox steps --file .wdiox/default-20260401120000.steps.json
+
 # Aliases
 wdiox start / new                 # → open
 wdiox stop                        # → close
-wdiox type <ref> <text>           # → fill
+wdiox fill <ref> <text>           # → type (fill is an alias)
+wdiox goto <url>                  # → navigate
+wdiox swipe <direction>           # → scroll (mobile)
+wdiox record                      # → steps
 ```
 
 ## Element Refs
@@ -98,6 +115,43 @@ wdiox fill e2 "$PASSWORD"    # always use env vars for secrets
 wdiox click e3
 sleep 2                      # wait for page transition
 wdiox snapshot               # re-snapshot on new page
+```
+
+### Navigate mid-session
+```bash
+wdiox open https://app.example.com
+wdiox snapshot
+wdiox fill e1 "user@example.com"
+wdiox navigate https://app.example.com/dashboard   # no close/reopen needed
+wdiox snapshot
+```
+
+### Read page state with execute
+```bash
+wdiox execute "return document.title"
+wdiox execute "return document.querySelector('.badge').textContent"
+wdiox execute "return window.scrollY"
+# Pass arguments — strings that match selectors are resolved to elements:
+wdiox execute "arguments[0].scrollIntoView()" --args '"#deep-section"'
+```
+
+### Scroll and verify new content
+```bash
+wdiox snapshot                    # initial elements
+wdiox scroll down
+wdiox snapshot                    # re-snapshot — new elements are now in view
+```
+> **Re-snapshot after scrolling.** Refs are tied to the last snapshot; scrolling changes the viewport so refs may no longer resolve correctly.
+
+### Mobile: Swipe through onboarding, then interact
+```bash
+wdiox open --app "app.apk" --device "emulator-5554"
+wdiox snapshot
+wdiox scroll left                 # onboarding page 2
+wdiox scroll left                 # onboarding page 3
+wdiox snapshot
+wdiox click e4                    # "Let's go!" button
+sleep 1 && wdiox snapshot
 ```
 
 ### Mobile: Multi-step navigation (Appium)
@@ -136,11 +190,13 @@ All files are written to `.wdiox/` in the CWD. Add `.wdiox/` to `.gitignore`.
 | `.wdiox/<session>-<YYYYMMDDHHmmss>.steps.json` | Created on `open`, **preserved** on `close` — full command log |
 | `.wdiox/screenshots/<session>-screenshot-<YYYYMMDDHHmmss>.png` | Written on `screenshot` (default path) |
 
-The steps file records every action (`open`, `click`, `type`, `snapshot`, `screenshot`, `close`) with index, params, status, duration, and timestamp — matching the `@wdio/mcp` `RecordedStep` schema.
+The steps file records every action (`open`, `click`, `type`, `navigate`, `scroll`, `execute`, `snapshot`, `screenshot`, `close`) with index, params (including resolved selector for `click`/`type`), status, duration, and timestamp — matching the `@wdio/mcp` `RecordedStep` schema. Use `wdiox steps` to read the active session's log, or `wdiox steps --list` / `--file` for archived sessions.
 
 ## Supporting Files
 
-- [flags.md](flags.md) — full `open` and `snapshot` flag reference
+- [flags.md](flags.md) — full flag reference for all commands
+- [execute.md](execute.md) — `wdiox execute` guide: JS execution, mobile commands, alert handling
+- [navigate-scroll-steps.md](navigate-scroll-steps.md) — `navigate`, `scroll`/`swipe`, and `steps`/`record` guide
 - [launch-chrome-remote-debugging.md](launch-chrome-remote-debugging.md) — launch Chrome with your real profile for `wdiox open --attach`
 - [start-mobile-environment.md](start-mobile-environment.md) — start Android emulator / iOS simulator and Appium
 
@@ -152,5 +208,7 @@ The steps file records every action (`open`, `click`, `type`, `snapshot`, `scree
 ## Common Mistakes
 
 - **Running `click` before `snapshot`** — refs file won't exist; always snapshot first
-- **Stale refs after navigation** — re-run `snapshot` after page changes
+- **Stale refs after navigation** — re-run `snapshot` after page changes or scrolling
 - **Element not in snapshot** — it may be below the fold; try `wdiox snapshot --no-visible`
+- **`scroll` on browser with `left`/`right`** — browser only supports `up`/`down`; use `wdiox execute "window.scrollBy(x, 0)"` for horizontal
+- **`execute` on a native mobile context** — `browser.execute()` is not supported in native Appium context; use `mobile:` prefixed commands instead (e.g. `mobile: scrollGesture`, `mobile: pressKey`)
