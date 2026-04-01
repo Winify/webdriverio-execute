@@ -9,10 +9,14 @@ const { mockSaveScreenshot } = vi.hoisted(() => ({
 vi.mock('webdriverio', () => ({
   attach: vi.fn().mockResolvedValue({ saveScreenshot: mockSaveScreenshot }),
 }));
+vi.mock('../../src/steps.js', () => ({
+  appendStep: vi.fn().mockResolvedValue(undefined),
+}));
 
 import { handler } from '../../src/commands/screenshot.js';
 import { writeSession } from '../../src/session.js';
 import type { SessionMetadata } from '../../src/session.js';
+import { appendStep } from '../../src/steps.js';
 
 const TEST_DIR = path.join(os.tmpdir(), 'wdio-x-test-screenshot');
 
@@ -47,12 +51,19 @@ describe('screenshot command', () => {
     await handler({ path: '/tmp/test.png', session: 'default', _sessionsDir: TEST_DIR } as unknown as Parameters<typeof handler>[0]);
     expect(mockSaveScreenshot).toHaveBeenCalledWith('/tmp/test.png');
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('/tmp/test.png'));
+    expect(appendStep).toHaveBeenCalledWith(
+      'default', 'screenshot', { path: '/tmp/test.png' }, 'ok', expect.any(Number), undefined, expect.any(String),
+    );
   });
 
-  it('should generate default filename when no path given', async () => {
+  it('should default to .wdiox/screenshots/<session>-screenshot-<timestamp>.png', async () => {
     await handler({ session: 'default', _sessionsDir: TEST_DIR } as unknown as Parameters<typeof handler>[0]);
-    expect(mockSaveScreenshot).toHaveBeenCalledWith(expect.stringContaining('screenshot-'));
-    expect(mockSaveScreenshot).toHaveBeenCalledWith(expect.stringMatching(/\.png$/));
+    expect(mockSaveScreenshot).toHaveBeenCalledWith(
+      expect.stringMatching(/default-screenshot-\d{14}\.png$/),
+    );
+    expect(mockSaveScreenshot).toHaveBeenCalledWith(
+      expect.stringContaining(path.join(TEST_DIR, 'screenshots')),
+    );
   });
 
   it('should error when no session exists', async () => {

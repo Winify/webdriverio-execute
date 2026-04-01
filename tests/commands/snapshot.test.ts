@@ -15,12 +15,16 @@ vi.mock('webdriverio', () => ({
     capabilities: { browserName: 'chrome' },
   }),
 }));
+vi.mock('../../src/steps.js', () => ({
+  appendStep: vi.fn().mockResolvedValue(undefined),
+}));
 
 import { handler } from '../../src/commands/snapshot.js';
 import { writeSession } from '../../src/session.js';
 import { readRefs } from '../../src/refs.js';
 import { getRefsPath } from '../../src/session.js';
 import type { SessionMetadata } from '../../src/session.js';
+import { appendStep } from '../../src/steps.js';
 
 const TEST_DIR = path.join(os.tmpdir(), 'wdio-x-test-snapshot');
 
@@ -70,6 +74,10 @@ describe('snapshot command', () => {
     expect(refs).not.toBeNull();
     expect(refs!['e1']).toBeDefined();
     expect(refs!['e1'].selector).toBe('button.submit');
+
+    expect(appendStep).toHaveBeenCalledWith(
+      'default', 'snapshot', { visible: true }, 'ok', expect.any(Number), undefined, expect.any(String),
+    );
   });
 
   it('should error when no session exists', async () => {

@@ -38,7 +38,7 @@ describe('session', () => {
   describe('getSessionDir', () => {
     it('should return default dir when no baseDir is provided', () => {
       const dir = getSessionDir();
-      expect(dir).toBe(path.join(os.homedir(), '.wdio-x', 'sessions'));
+      expect(dir).toBe(path.join(process.cwd(), '.wdiox'));
     });
 
     it('should return the provided baseDir', () => {
@@ -134,6 +134,19 @@ describe('session', () => {
 
       const beta = sessions.find((s) => s.name === 'beta');
       expect(beta?.metadata.sessionId).toBe('def-456');
+    });
+
+    it('should exclude .steps.json files from session list', async () => {
+      await writeSession('gamma', sampleMetadata, tmpDir);
+      // Write a steps file that should be excluded
+      await fs.writeFile(
+        path.join(tmpDir, 'gamma.steps.json'),
+        JSON.stringify({ sessionId: 'abc', steps: [] }),
+      );
+
+      const sessions = await listSessions(tmpDir);
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0].name).toBe('gamma');
     });
 
     it('should return empty array when no sessions exist', async () => {

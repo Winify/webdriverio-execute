@@ -35,11 +35,18 @@ vi.mock('node:readline/promises', () => ({
     }),
   },
 }));
+vi.mock('../../src/steps.js', () => ({
+  appendStep: vi.fn().mockResolvedValue(undefined),
+  initSteps: vi.fn().mockResolvedValue(undefined),
+  finalizeSteps: vi.fn().mockResolvedValue(undefined),
+  deleteStepsFile: vi.fn().mockResolvedValue(undefined),
+}));
 
 import { remote } from 'webdriverio';
 import { waitForCDP, closeStaleMappers } from '../../src/cdp.js';
 import { handler } from '../../src/commands/open.js';
 import { readSession } from '../../src/session.js';
+import { appendStep, initSteps } from '../../src/steps.js';
 
 const TEST_DIR = path.join(os.tmpdir(), 'wdio-x-test-open');
 
@@ -70,6 +77,11 @@ describe('open command', () => {
     expect(meta).not.toBeNull();
     expect(meta!.sessionId).toBe('test-session-123');
     expect(meta!.url).toBe('https://example.com');
+
+    expect(initSteps).toHaveBeenCalledWith('default', expect.any(String), 'browser', expect.any(String));
+    expect(appendStep).toHaveBeenCalledWith(
+      'default', 'open', expect.objectContaining({ browser: 'chrome' }), 'ok', expect.any(Number), undefined, expect.any(String),
+    );
   });
 
   it('should call remote with browserName capability', async () => {

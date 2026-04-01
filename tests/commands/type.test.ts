@@ -12,12 +12,16 @@ const { mockClearValue, mockAddValue, mock$ } = vi.hoisted(() => {
 vi.mock('webdriverio', () => ({
   attach: vi.fn().mockResolvedValue({ $: mock$ }),
 }));
+vi.mock('../../src/steps.js', () => ({
+  appendStep: vi.fn().mockResolvedValue(undefined),
+}));
 
-import { handler } from '../../src/commands/type';
+import { handler } from '../../src/commands/type.js';
 import { writeSession } from '../../src/session.js';
 import { writeRefs } from '../../src/refs.js';
 import { getRefsPath } from '../../src/session.js';
 import type { SessionMetadata } from '../../src/session.js';
+import { appendStep } from '../../src/steps.js';
 
 const TEST_DIR = path.join(os.tmpdir(), 'wdio-x-test-type');
 
@@ -52,5 +56,8 @@ describe('type command', () => {
     expect(mock$).toHaveBeenCalledWith('#email');
     expect(mockClearValue).toHaveBeenCalled();
     expect(mockAddValue).toHaveBeenCalledWith('hello@example.com');
+    expect(appendStep).toHaveBeenCalledWith(
+      'default', 'type', { ref: 'e1', text: 'hello@example.com' }, 'ok', expect.any(Number), undefined, expect.any(String),
+    );
   });
 });

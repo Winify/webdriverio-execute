@@ -3,6 +3,7 @@ import { attach } from 'webdriverio';
 
 import { getRefsPath, buildAttachOptions, withSession } from '../session.js';
 import { lookupRef } from '../refs.js';
+import { appendStep } from '../steps.js';
 
 export const command = ['type <ref> <text>', 'fill <ref> <text>'];
 export const desc = 'Clear and type text into an input element by snapshot reference';
@@ -27,6 +28,7 @@ interface FillArgs {
 }
 
 export const handler = withSession<FillArgs>(async (argv: ArgumentsCamelCase<FillArgs>, meta, sessionsDir) => {
+  const startTime = Date.now();
   const sessionName = argv.session as string;
   const refKey = argv.ref as string;
   const result = await lookupRef(getRefsPath(sessionName, sessionsDir), refKey);
@@ -40,9 +42,11 @@ export const handler = withSession<FillArgs>(async (argv: ArgumentsCamelCase<Fil
     const element = await browser.$(result.selector);
     await element.clearValue();
     await element.addValue(argv.text as string);
+    await appendStep(sessionName, 'type', { ref: refKey, text: argv.text as string }, 'ok', Date.now() - startTime, undefined, sessionsDir);
     console.log(`Filled ${refKey} with "${argv.text}"`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
+    await appendStep(sessionName, 'type', { ref: refKey, text: argv.text as string }, 'error', Date.now() - startTime, msg, sessionsDir);
     console.error(`Error: ${refKey} not found on page — the page may have changed. Run wdiox snapshot to refresh.\n${msg}`);
   }
 });

@@ -5,6 +5,7 @@ import { attach, remote } from 'webdriverio';
 
 import { writeSession, readSession, getSessionDir, buildAttachOptions, deleteSessionFiles } from '../session.js';
 import { waitForCDP, closeStaleMappers, restoreAndSwitchToActiveTab } from '../cdp.js';
+import { initSteps, appendStep, deleteStepsFile } from '../steps.js';
 
 export const command = ['open [url]', 'new [url]', 'start [url]'];
 export const desc = 'Open a browser or Appium session';
@@ -151,6 +152,7 @@ async function attachMobile(argv: ArgumentsCamelCase<OpenArgs>): Promise<Webdriv
 }
 
 export async function handler (argv: ArgumentsCamelCase<OpenArgs>) {
+  const startTime = Date.now();
   const sessionName = argv.session as string;
   const sessionsDir = (argv._sessionsDir as string) || getSessionDir();
 
@@ -174,6 +176,7 @@ export async function handler (argv: ArgumentsCamelCase<OpenArgs>) {
       }
     }
     await deleteSessionFiles(sessionName, sessionsDir);
+    await deleteStepsFile(sessionName, sessionsDir);
   }
 
   if (argv.attach) {
@@ -189,6 +192,9 @@ export async function handler (argv: ArgumentsCamelCase<OpenArgs>) {
       url: argv.url || (isMobileAttach ? '' : await browser.getUrl().catch(() => '')),
       isAttached: true,
     }, sessionsDir);
+    const sessionType = isMobileAttach ? (argv.platform === 'ios' ? 'ios' : 'android') : 'browser';
+    await initSteps(sessionName, browser.sessionId, sessionType, sessionsDir);
+    await appendStep(sessionName, 'open', { url: argv.url, attach: true }, 'ok', Date.now() - startTime, undefined, sessionsDir);
     console.log(`Session "${sessionName}" attached.`);
     return;
   }
@@ -235,6 +241,11 @@ export async function handler (argv: ArgumentsCamelCase<OpenArgs>) {
     created: new Date().toISOString(),
     url: argv.url || '',
   }, sessionsDir);
+
+  const mobilePlatform = argv.platform ?? (argv.app?.endsWith('.apk') ? 'android' : 'ios');
+  const sessionType = isMobile ? (mobilePlatform === 'ios' ? 'ios' : 'android') : 'browser';
+  await initSteps(sessionName, browser.sessionId, sessionType, sessionsDir);
+  await appendStep(sessionName, 'open', { url: argv.url || '', browser: argv.browser }, 'ok', Date.now() - startTime, undefined, sessionsDir);
 
   console.log(`Session "${sessionName}" started.`);
 }

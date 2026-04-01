@@ -3,6 +3,7 @@ import { attach } from 'webdriverio';
 
 import { listSessions, getSessionDir, deleteSessionFiles, buildAttachOptions } from '../session.js';
 import { formatSessionList, type SessionListEntry } from '../format.js';
+import { deleteStepsFile } from '../steps.js';
 
 export const command = ['session-list', 'ls'];
 export const desc = 'List all active sessions';
@@ -30,6 +31,7 @@ export async function handler (argv: ArgumentsCamelCase<SessionListArgs>) {
     } catch {
       status = 'expired';
       await deleteSessionFiles(session.name, sessionsDir);
+      await deleteStepsFile(session.name, sessionsDir);
     }
 
     const caps = session.metadata.capabilities;

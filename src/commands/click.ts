@@ -3,6 +3,7 @@ import { attach } from 'webdriverio';
 
 import { buildAttachOptions, getRefsPath, withSession } from '../session.js';
 import { lookupRef } from '../refs.js';
+import { appendStep } from '../steps.js';
 
 export const command = 'click <ref>';
 export const desc = 'Click an element by snapshot reference (e.g., e1)';
@@ -21,6 +22,7 @@ interface ClickArgs {
 }
 
 export const handler = withSession<ClickArgs>(async (argv: ArgumentsCamelCase<ClickArgs>, meta, sessionsDir) => {
+  const startTime = Date.now();
   const sessionName = argv.session as string;
   const refKey = argv.ref as string;
   const result = await lookupRef(getRefsPath(sessionName, sessionsDir), refKey);
@@ -32,9 +34,11 @@ export const handler = withSession<ClickArgs>(async (argv: ArgumentsCamelCase<Cl
 
   try {
     await browser.$(result.selector).click();
+    await appendStep(sessionName, 'click', { ref: refKey }, 'ok', Date.now() - startTime, undefined, sessionsDir);
     console.log(`Clicked ${refKey} (${result.ref.selector})`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
+    await appendStep(sessionName, 'click', { ref: refKey }, 'error', Date.now() - startTime, msg, sessionsDir);
     console.error(`Error clicking ${refKey}: ${msg}`);
   }
 });

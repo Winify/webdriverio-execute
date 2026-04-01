@@ -1,4 +1,3 @@
-import os from 'node:os';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -20,7 +19,7 @@ export interface SessionEntry {
   metadata: SessionMetadata
 }
 
-const DEFAULT_SESSION_DIR = path.join(os.homedir(), '.wdio-x', 'sessions');
+const DEFAULT_SESSION_DIR = path.join(process.cwd(), '.wdiox');
 
 function isEnoent(err: unknown): boolean {
   return err instanceof Error && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT';
@@ -129,7 +128,7 @@ export async function listSessions (baseDir?: string): Promise<SessionEntry[]> {
   }
 
   const sessionFiles = files.filter(
-    (f) => f.endsWith('.json') && !f.endsWith('.refs.json'),
+    (f) => f.endsWith('.json') && !f.endsWith('.refs.json') && !f.endsWith('.steps.json'),
   );
 
   return await Promise.all(

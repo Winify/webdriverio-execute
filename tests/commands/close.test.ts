@@ -11,11 +11,18 @@ vi.mock('webdriverio', () => ({
     deleteSession: mockDeleteSession,
   }),
 }));
+vi.mock('../../src/steps.js', () => ({
+  appendStep: vi.fn().mockResolvedValue(undefined),
+  initSteps: vi.fn().mockResolvedValue(undefined),
+  finalizeSteps: vi.fn().mockResolvedValue(undefined),
+  deleteStepsFile: vi.fn().mockResolvedValue(undefined),
+}));
 
 import { attach } from 'webdriverio';
 import { handler } from '../../src/commands/close.js';
 import { writeSession, readSession } from '../../src/session.js';
 import type { SessionMetadata } from '../../src/session.js';
+import { appendStep, finalizeSteps } from '../../src/steps.js';
 
 const TEST_DIR = path.join(os.tmpdir(), 'wdio-x-test-close');
 
@@ -53,6 +60,9 @@ describe('close command', () => {
     expect(mockDeleteSession).toHaveBeenCalled();
     const read = await readSession('default', TEST_DIR);
     expect(read).toBeNull();
+
+    expect(appendStep).toHaveBeenCalledWith('default', 'close', {}, 'ok', expect.any(Number), undefined, expect.any(String));
+    expect(finalizeSteps).toHaveBeenCalledWith('default', expect.any(String));
   });
 
   it('should attach with correct session details', async () => {

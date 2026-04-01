@@ -11,12 +11,16 @@ const { mockClick, mock$ } = vi.hoisted(() => {
 vi.mock('webdriverio', () => ({
   attach: vi.fn().mockResolvedValue({ $: mock$ }),
 }));
+vi.mock('../../src/steps.js', () => ({
+  appendStep: vi.fn().mockResolvedValue(undefined),
+}));
 
 import { handler } from '../../src/commands/click.js';
 import { writeSession } from '../../src/session.js';
 import { writeRefs } from '../../src/refs.js';
 import { getRefsPath } from '../../src/session.js';
 import type { SessionMetadata } from '../../src/session.js';
+import { appendStep } from '../../src/steps.js';
 
 const TEST_DIR = path.join(os.tmpdir(), 'wdio-x-test-click');
 
@@ -53,6 +57,15 @@ describe('click command', () => {
     await handler({ ref: 'e1', session: 'default', _sessionsDir: TEST_DIR } as unknown as Parameters<typeof handler>[0]);
     expect(mock$).toHaveBeenCalledWith('button.submit');
     expect(mockClick).toHaveBeenCalled();
+    expect(appendStep).toHaveBeenCalledWith('default', 'click', { ref: 'e1' }, 'ok', expect.any(Number), undefined, expect.any(String));
+  });
+
+  it('should record error step when click throws', async () => {
+    mockClick.mockRejectedValueOnce(new Error('Element not interactable'));
+    await handler({ ref: 'e1', session: 'default', _sessionsDir: TEST_DIR } as unknown as Parameters<typeof handler>[0]);
+    expect(appendStep).toHaveBeenCalledWith(
+      'default', 'click', { ref: 'e1' }, 'error', expect.any(Number), 'Element not interactable', expect.any(String),
+    );
   });
 
   it('should error on unknown ref', async () => {

@@ -9,10 +9,14 @@ const { mockGetTitle } = vi.hoisted(() => ({
 vi.mock('webdriverio', () => ({
   attach: vi.fn().mockResolvedValue({ getTitle: mockGetTitle }),
 }));
+vi.mock('../../src/steps.js', () => ({
+  deleteStepsFile: vi.fn().mockResolvedValue(undefined),
+}));
 
 import { handler } from '../../src/commands/session-list.js';
 import { writeSession } from '../../src/session.js';
 import type { SessionMetadata } from '../../src/session.js';
+import { deleteStepsFile } from '../../src/steps.js';
 
 const TEST_DIR = path.join(os.tmpdir(), 'wdio-x-test-session-list');
 
@@ -52,5 +56,13 @@ describe('session-list command', () => {
 
     const output = logSpy.mock.calls.map(c => c[0]).join('\n');
     expect(output).toContain('No active sessions');
+  });
+
+  it('should call deleteStepsFile for expired sessions', async () => {
+    await writeSession('expired-session', meta, TEST_DIR);
+
+    await handler({ _sessionsDir: TEST_DIR } as unknown as Parameters<typeof handler>[0]);
+
+    expect(deleteStepsFile).toHaveBeenCalledWith('expired-session', expect.any(String));
   });
 });

@@ -5,6 +5,7 @@ import type { ArgumentsCamelCase } from 'yargs';
 import { attach } from 'webdriverio';
 
 import { deleteSessionFiles, buildAttachOptions, withSession } from '../session.js';
+import { appendStep, finalizeSteps } from '../steps.js';
 
 export const command = ['close', 'stop'];
 export const desc = 'Close the current session';
@@ -29,9 +30,12 @@ function killProcess(pid: number): void {
 
 export const handler = withSession<CloseArgs>(async (argv: ArgumentsCamelCase<CloseArgs>, meta, sessionsDir) => {
   const sessionName = argv.session as string;
+  const startTime = Date.now();
 
   if (meta.isAttached) {
     await deleteSessionFiles(sessionName, sessionsDir);
+    await appendStep(sessionName, 'close', {}, 'ok', Date.now() - startTime, undefined, sessionsDir);
+    await finalizeSteps(sessionName, sessionsDir);
     console.log(`Session "${sessionName}" detached.`);
     return;
   }
@@ -53,5 +57,7 @@ export const handler = withSession<CloseArgs>(async (argv: ArgumentsCamelCase<Cl
   }
 
   await deleteSessionFiles(sessionName, sessionsDir);
+  await appendStep(sessionName, 'close', {}, 'ok', Date.now() - startTime, undefined, sessionsDir);
+  await finalizeSteps(sessionName, sessionsDir);
   console.log(`Session "${sessionName}" closed.`);
 });
