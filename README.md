@@ -8,9 +8,11 @@ npm install -g webdriverio-execute
 
 ## How it works
 
-Each command is stateless. Sessions are stored as JSON in `~/.wdio-x/sessions/`. Commands attach to an existing session by reading that file — no daemon, no background process.
+Each command is stateless. Sessions are stored as JSON in `.wdiox/` in the current working directory (add `.wdiox/` to your `.gitignore`). Commands attach to an existing session by reading that file — no daemon, no background process.
 
 `snapshot` captures all interactable elements and assigns short refs (`e1`, `e2`, …). Subsequent commands use those refs to act on elements.
+
+Every action command appends a step to `<session>.steps.json`. On `close`, the steps file is renamed to `<session>-<YYYYMMDDHHmmss>.steps.json` and preserved on disk.
 
 ## Commands
 
@@ -105,6 +107,74 @@ wdiox screenshot /tmp/login-page.png
 
 ---
 
+### `navigate` / `goto`
+
+Navigate to a URL within the active session.
+
+```bash
+wdiox navigate https://example.com/login
+wdiox goto https://example.com/login
+```
+
+---
+
+### `scroll` / `swipe`
+
+Scroll the page (browser) or swipe (mobile).
+
+```bash
+wdiox scroll down
+wdiox scroll up --pixels 1000
+wdiox swipe left --duration 300 --percent 0.9
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `--pixels` | `500` | Pixels to scroll (browser only) |
+| `--duration` | `500` | Swipe duration in ms (mobile only) |
+| `--percent` | `0.5` (vertical) / `0.95` (horizontal) | Screen percentage to swipe, `0`–`1` (mobile only) |
+
+> Browser: `up`/`down` only. For horizontal scroll use `execute`.
+
+---
+
+### `execute`
+
+Execute JavaScript in the browser, or run a mobile command via Appium.
+
+```bash
+wdiox execute "return document.title"
+wdiox execute "return arguments[0].textContent" --args '["#main"]'
+wdiox execute "mobile: pressKey" --args '{"keycode": 4}'
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `--args` | — | JSON-encoded arguments (array or single value) |
+
+String args that match a valid CSS selector are automatically resolved to DOM elements before the script runs.
+
+---
+
+### `steps` / `record`
+
+Display recorded steps for the active session or list archived step files.
+
+```bash
+wdiox steps                       # active session steps
+wdiox steps --json                # raw JSON output
+wdiox steps --list                # list all archived step files
+wdiox steps --file .wdiox/<session>-20240101120000.steps.json
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `--json` | `false` | Output raw JSON |
+| `--list` | `false` | List all archived steps files |
+| `--file` | — | Display a specific archived steps file by path |
+
+---
+
 ### `close` / `stop`
 
 Close the current session.
@@ -152,7 +222,10 @@ wdiox snapshot
 wdiox fill e1 "user@example.com"
 wdiox fill e2 "password"
 wdiox click e3
+wdiox navigate https://example.com/dashboard
+wdiox scroll down
 wdiox screenshot
+wdiox steps
 wdiox close
 ```
 
