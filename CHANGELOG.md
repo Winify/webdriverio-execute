@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/Winify/webdriverio-execute/compare/v0.3.0...v1.0.0) (2026-04-02)
+
+### ⚠ BREAKING CHANGES
+
+* Change default directory to `__cwd__/.wdiox`
+
+### Features
+
+* Add new commands (`execute`, `navigate`, `scroll`, `steps`) for session automation ([19a9935](https://github.com/Winify/webdriverio-execute/commit/19a993532b59de8af4ddf5e9143d6a6b7a58f9b5))
+* Implement step tracking and persistence for session actions ([dbbb257](https://github.com/Winify/webdriverio-execute/commit/dbbb2573d99a974d6e2257d2d7be568753dfbbfc))
+
 ## 0.3.0 (2026-03-25)
 
 ### Features
