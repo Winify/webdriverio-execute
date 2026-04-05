@@ -8,7 +8,7 @@ export interface SessionMetadata {
   sessionId: string
   hostname: string
   port: number
-  capabilities: Record<string, unknown>
+  capabilities: WebdriverIO.Capabilities
   created: string
   url: string
   isAttached?: boolean
@@ -31,7 +31,7 @@ function isEnoent(err: unknown): boolean {
 export function buildAttachOptions(meta: SessionMetadata): AttachOptions {
   return {
     sessionId: meta.sessionId,
-    capabilities: meta.capabilities as WebdriverIO.Capabilities,
+    capabilities: meta.capabilities,
     options: {
       hostname: meta.hostname,
       port: meta.port,

@@ -1,11 +1,11 @@
 import readline from 'node:readline/promises';
 import type { ArgumentsCamelCase, Argv } from 'yargs';
-import type { Capabilities } from '@wdio/types';
+import type { Capabilities, Options } from '@wdio/types';
 import { attach, remote } from 'webdriverio';
 
-import { writeSession, readSession, getSessionDir, buildAttachOptions, deleteSessionFiles } from '../session.js';
-import { waitForCDP, closeStaleMappers, restoreAndSwitchToActiveTab } from '../cdp.js';
-import { initSteps, appendStep, deleteStepsFile } from '../steps.js';
+import { buildAttachOptions, deleteSessionFiles, getSessionDir, readSession, writeSession } from '../session.js';
+import { closeStaleMappers, restoreAndSwitchToActiveTab, waitForCDP } from '../cdp.js';
+import { appendStep, deleteStepsFile, initSteps } from '../steps.js';
 
 export const command = ['open [url]', 'new [url]', 'start [url]'];
 export const desc = 'Open a browser or Appium session';
@@ -109,7 +109,7 @@ async function attachBrowser(argv: ArgumentsCamelCase<OpenArgs>): Promise<Webdri
   const browser = await remote({
     connectionRetryTimeout: 30000,
     connectionRetryCount: 3,
-    logLevel: (process.env.WDIO_LOG_LEVEL ?? 'error') as WebdriverIO.Config['logLevel'],
+    logLevel: (process.env.WDIO_LOG_LEVEL ?? 'error') as Options.WebDriverLogTypes,
     capabilities: {
       browserName: 'chrome',
       unhandledPromptBehavior: 'dismiss',
@@ -153,14 +153,14 @@ async function attachMobile(argv: ArgumentsCamelCase<OpenArgs>): Promise<Webdriv
 
 export async function handler (argv: ArgumentsCamelCase<OpenArgs>) {
   const startTime = Date.now();
-  const sessionName = argv.session as string;
+  const sessionName = argv.session;
   const sessionsDir = (argv._sessionsDir as string) || getSessionDir();
 
   const existing = await readSession(sessionName, sessionsDir);
   if (existing) {
     if (!argv.attach) {
       const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-      const context = existing.url || (existing.capabilities['appium:app'] as string) || '';
+      const context = existing.url || (existing.capabilities['appium:app']) || '';
       const answer = await rl.question(`Session [${sessionName}] is already active${context ? ` (${context})` : ''}.\nClose it and start a new one? (y/N) `);
       rl.close();
 
@@ -181,17 +181,21 @@ export async function handler (argv: ArgumentsCamelCase<OpenArgs>) {
 
   if (argv.attach) {
     const isMobileAttach = !!argv.device;
-    const browser = isMobileAttach ? await attachMobile(argv) : await attachBrowser(argv);
+    const browser = isMobileAttach
+      ? await attachMobile(argv)
+      : await attachBrowser(argv);
+
     const opts = browser.options as Capabilities.WebdriverIOConfig;
     await writeSession(sessionName, {
       sessionId: browser.sessionId,
       hostname: opts?.hostname || 'localhost',
       port: opts?.port || 4444,
-      capabilities: browser.capabilities as Record<string, unknown>,
+      capabilities: browser.capabilities,
       created: new Date().toISOString(),
       url: argv.url || (isMobileAttach ? '' : await browser.getUrl().catch(() => '')),
       isAttached: true,
     }, sessionsDir);
+
     const sessionType = isMobileAttach ? (argv.platform === 'ios' ? 'ios' : 'android') : 'browser';
     await initSteps(sessionName, browser.sessionId, sessionType, sessionsDir);
     await appendStep(sessionName, 'open', { url: argv.url, attach: true }, 'ok', Date.now() - startTime, undefined, sessionsDir);
@@ -199,7 +203,7 @@ export async function handler (argv: ArgumentsCamelCase<OpenArgs>) {
     return;
   }
 
-  const capabilities: Record<string, unknown> = {};
+  const capabilities: Capabilities.RequestedStandaloneCapabilities = {};
 
   const isMobile = !!argv.app || !!argv.device;
   if (isMobile) {
@@ -215,10 +219,11 @@ export async function handler (argv: ArgumentsCamelCase<OpenArgs>) {
     capabilities['appium:autoDismissAlerts'] = argv.autoDismiss;
   } else {
     capabilities.browserName = argv.browser;
+    // @ts-expect-error No `spawnOpts` defined in WebdriverIO.ChromedriverOptions
     capabilities['wdio:chromedriverOptions'] = { spawnOpts: { detached: true } };
   }
 
-  const remoteOpts: Record<string, unknown> = { capabilities, logLevel: process.env.WDIO_LOG_LEVEL ?? 'error' };
+  const remoteOpts: Capabilities.WebdriverIOConfig = { capabilities, logLevel: (process.env.WDIO_LOG_LEVEL ?? 'error') as Options.WebDriverLogTypes };
   // For mobile / Appium, explicit connection is required
   if (argv.hostname || argv.port || isMobile) {
     remoteOpts.hostname = argv.hostname ?? 'localhost';
@@ -226,7 +231,7 @@ export async function handler (argv: ArgumentsCamelCase<OpenArgs>) {
     remoteOpts.path =  argv.path ?? '/';
   }
 
-  const browser = await remote(remoteOpts as unknown as Capabilities.WebdriverIOConfig);
+  const browser = await remote(remoteOpts);
 
   if (argv.url) {
     await browser.url(argv.url);
