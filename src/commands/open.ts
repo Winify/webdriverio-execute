@@ -3,7 +3,7 @@ import type { ArgumentsCamelCase, Argv } from 'yargs';
 import type { Capabilities, Options } from '@wdio/types';
 import { attach, remote } from 'webdriverio';
 
-import { buildAttachOptions, deleteSessionFiles, getSessionDir, readSession, writeSession } from '../session.js';
+import { buildAttachOptions, deleteSessionFiles, getSessionDir, readSession, writeSession, type SessionMetadata } from '../session.js';
 import { closeStaleMappers, restoreAndSwitchToActiveTab, waitForCDP } from '../cdp.js';
 import { appendStep, deleteStepsFile, initSteps } from '../steps.js';
 
@@ -99,6 +99,39 @@ interface OpenArgs {
   _sessionsDir?: string
 }
 
+function resolveSessionType(argv: ArgumentsCamelCase<OpenArgs>): 'browser' | 'ios' | 'android' {
+  const isMobile = !!argv.app || !!argv.device;
+  if (!isMobile) return 'browser';
+  const platform = argv.platform ?? (argv.app?.endsWith('.apk') ? 'android' : 'ios');
+  return platform === 'ios' ? 'ios' : 'android';
+}
+
+async function cleanupExistingSession(
+  existing: SessionMetadata,
+  sessionName: string,
+  sessionsDir: string,
+  isAttach: boolean,
+): Promise<boolean> {
+  if (!isAttach) {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    const context = existing.url || (existing.capabilities['appium:app'] as string) || '';
+    const answer = await rl.question(`Session [${sessionName}] is already active${context ? ` (${context})` : ''}.\nClose it and start a new one? (y/N) `);
+    rl.close();
+
+    if (answer.trim().toLowerCase() !== 'y') return false;
+
+    try {
+      const old = await attach(buildAttachOptions(existing));
+      await old.deleteSession();
+    } catch {
+      // Already dead
+    }
+  }
+  await deleteSessionFiles(sessionName, sessionsDir);
+  await deleteStepsFile(sessionName, sessionsDir);
+  return true;
+}
+
 async function attachBrowser(argv: ArgumentsCamelCase<OpenArgs>): Promise<WebdriverIO.Browser> {
   const host = argv.debugHost ?? 'localhost';
   const port = argv.debugPort ?? 9222;
@@ -151,64 +184,15 @@ async function attachMobile(argv: ArgumentsCamelCase<OpenArgs>): Promise<Webdriv
   } as unknown as Capabilities.WebdriverIOConfig);
 }
 
-export async function handler (argv: ArgumentsCamelCase<OpenArgs>) {
-  const startTime = Date.now();
-  const sessionName = argv.session;
-  const sessionsDir = (argv._sessionsDir as string) || getSessionDir();
-
-  const existing = await readSession(sessionName, sessionsDir);
-  if (existing) {
-    if (!argv.attach) {
-      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-      const context = existing.url || (existing.capabilities['appium:app']) || '';
-      const answer = await rl.question(`Session [${sessionName}] is already active${context ? ` (${context})` : ''}.\nClose it and start a new one? (y/N) `);
-      rl.close();
-
-      if (answer.trim().toLowerCase() !== 'y') {
-        return;
-      }
-
-      try {
-        const old = await attach(buildAttachOptions(existing));
-        await old.deleteSession();
-      } catch {
-        // Already dead
-      }
-    }
-    await deleteSessionFiles(sessionName, sessionsDir);
-    await deleteStepsFile(sessionName, sessionsDir);
-  }
-
-  if (argv.attach) {
-    const isMobileAttach = !!argv.device;
-    const browser = isMobileAttach
-      ? await attachMobile(argv)
-      : await attachBrowser(argv);
-
-    const opts = browser.options as Capabilities.WebdriverIOConfig;
-    await writeSession(sessionName, {
-      sessionId: browser.sessionId,
-      hostname: opts?.hostname || 'localhost',
-      port: opts?.port || 4444,
-      capabilities: browser.capabilities,
-      created: new Date().toISOString(),
-      url: argv.url || (isMobileAttach ? '' : await browser.getUrl().catch(() => '')),
-      isAttached: true,
-    }, sessionsDir);
-
-    const sessionType = isMobileAttach ? (argv.platform === 'ios' ? 'ios' : 'android') : 'browser';
-    await initSteps(sessionName, browser.sessionId, sessionType, sessionsDir);
-    await appendStep(sessionName, 'open', { url: argv.url, attach: true }, 'ok', Date.now() - startTime, undefined, sessionsDir);
-    console.log(`Session "${sessionName}" attached.`);
-    return;
-  }
-
+async function createNewSession(argv: ArgumentsCamelCase<OpenArgs>): Promise<{
+  browser: WebdriverIO.Browser
+  requestedCapabilities: Record<string, unknown>
+}> {
   const capabilities: Capabilities.RequestedStandaloneCapabilities = {};
-
   const isMobile = !!argv.app || !!argv.device;
+
   if (isMobile) {
     const platform = argv.platform ?? (argv.app?.endsWith('.apk') ? 'android' : 'ios');
-
     capabilities.platformName = platform === 'ios' ? 'iOS' : 'Android';
     capabilities['appium:app'] = argv.app;
     capabilities['appium:deviceName'] = argv.device ?? 'emulator-5554';
@@ -223,37 +207,88 @@ export async function handler (argv: ArgumentsCamelCase<OpenArgs>) {
     capabilities['wdio:chromedriverOptions'] = { spawnOpts: { detached: true } };
   }
 
-  const remoteOpts: Capabilities.WebdriverIOConfig = { capabilities, logLevel: (process.env.WDIO_LOG_LEVEL ?? 'error') as Options.WebDriverLogTypes };
-  // For mobile / Appium, explicit connection is required
+  const remoteOpts: Capabilities.WebdriverIOConfig = {
+    capabilities,
+    logLevel: (process.env.WDIO_LOG_LEVEL ?? 'error') as Options.WebDriverLogTypes,
+  };
   if (argv.hostname || argv.port || isMobile) {
     remoteOpts.hostname = argv.hostname ?? 'localhost';
     remoteOpts.port = argv.port ?? (isMobile ? 4723 : 4444);
-    remoteOpts.path =  argv.path ?? '/';
+    remoteOpts.path = argv.path ?? '/';
   }
 
   const browser = await remote(remoteOpts);
-
   if (argv.url) {
     await browser.url(argv.url);
   }
 
-  const opts = browser.options as Capabilities.WebdriverIOConfig;
+  return { browser, requestedCapabilities: capabilities as Record<string, unknown> };
+}
+
+async function finalizeOpen(opts: {
+  sessionName: string
+  sessionsDir: string
+  browser: WebdriverIO.Browser
+  sessionType: 'browser' | 'ios' | 'android'
+  capabilities: Record<string, unknown>
+  url: string
+  isAttached: boolean
+  openParams: Record<string, unknown>
+  startTime: number
+}): Promise<void> {
+  const { sessionName, sessionsDir, browser, sessionType, capabilities, url, isAttached, openParams, startTime } = opts;
+  const bOpts = browser.options as Capabilities.WebdriverIOConfig;
   await writeSession(sessionName, {
     sessionId: browser.sessionId,
-    hostname: opts?.hostname || 'localhost',
-    port: opts?.port || 4444,
+    hostname: bOpts?.hostname || 'localhost',
+    port: bOpts?.port || 4444,
     capabilities: { ...capabilities, ...browser.capabilities as Record<string, unknown> },
     created: new Date().toISOString(),
-    url: argv.url || '',
+    url,
+    ...(isAttached ? { isAttached: true } : {}),
   }, sessionsDir);
 
-  const mobilePlatform = argv.platform ?? (argv.app?.endsWith('.apk') ? 'android' : 'ios');
-  const sessionType = isMobile ? (mobilePlatform === 'ios' ? 'ios' : 'android') : 'browser';
   await initSteps(sessionName, browser.sessionId, sessionType, sessionsDir);
-  const openParams = isMobile
-    ? { app: argv.app || '', platform: mobilePlatform }
-    : { url: argv.url || '', browser: argv.browser };
   await appendStep(sessionName, 'open', openParams, 'ok', Date.now() - startTime, undefined, sessionsDir);
+  console.log(`Session "${sessionName}" ${isAttached ? 'attached' : 'started'}.`);
+}
 
-  console.log(`Session "${sessionName}" started.`);
+export async function handler(argv: ArgumentsCamelCase<OpenArgs>) {
+  const startTime = Date.now();
+  const sessionName = argv.session;
+  const sessionsDir = (argv._sessionsDir as string) || getSessionDir();
+
+  const existing = await readSession(sessionName, sessionsDir);
+  if (existing) {
+    const proceed = await cleanupExistingSession(existing, sessionName, sessionsDir, argv.attach);
+    if (!proceed) return;
+  }
+
+  const sessionType = resolveSessionType(argv);
+  let browser: WebdriverIO.Browser;
+  let capabilities: Record<string, unknown>;
+  let url: string;
+  let openParams: Record<string, unknown>;
+  let isAttached: boolean;
+
+  if (argv.attach) {
+    const isMobileAttach = !!argv.device;
+    browser = isMobileAttach ? await attachMobile(argv) : await attachBrowser(argv);
+    capabilities = browser.capabilities as Record<string, unknown>;
+    url = argv.url || (isMobileAttach ? '' : await browser.getUrl().catch(() => ''));
+    openParams = { url: argv.url, attach: true };
+    isAttached = true;
+  } else {
+    const result = await createNewSession(argv);
+    browser = result.browser;
+    const isMobile = !!argv.app || !!argv.device;
+    capabilities = { ...result.requestedCapabilities, ...browser.capabilities as Record<string, unknown> };
+    url = argv.url || '';
+    openParams = isMobile
+      ? { app: argv.app || '', platform: argv.platform ?? (argv.app?.endsWith('.apk') ? 'android' : 'ios') }
+      : { url: argv.url || '', browser: argv.browser };
+    isAttached = false;
+  }
+
+  await finalizeOpen({ sessionName, sessionsDir, browser, sessionType, capabilities, url, isAttached, openParams, startTime });
 }
