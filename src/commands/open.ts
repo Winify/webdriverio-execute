@@ -6,6 +6,7 @@ import { attach, remote } from 'webdriverio';
 import { buildAttachOptions, deleteSessionFiles, getSessionDir, readSession, writeSession, type SessionMetadata } from '../session.js';
 import { closeStaleMappers, restoreAndSwitchToActiveTab, waitForCDP } from '../cdp.js';
 import { appendStep, deleteStepsFile, initSteps } from '../steps.js';
+import { loadWdioConfig, pickCapabilities } from '../config-loader.js';
 
 export const command = ['open [url]', 'new [url]', 'start [url]'];
 export const desc = 'Open a browser or Appium session';
@@ -77,6 +78,10 @@ export const builder = (yargs: Argv) => {
       type: 'string',
       default: 'localhost',
       describe: 'Chrome remote debugging host (used with --attach)',
+    })
+    .option('config', {
+      type: 'string',
+      describe: 'Path to wdio.conf.js or wdio.conf.ts',
     });
 };
 
@@ -96,6 +101,7 @@ interface OpenArgs {
   attach: boolean
   debugPort: number
   debugHost: string
+  config?: string
   _sessionsDir?: string
 }
 
@@ -184,10 +190,50 @@ async function attachMobile(argv: ArgumentsCamelCase<OpenArgs>): Promise<Webdriv
   } as unknown as Capabilities.WebdriverIOConfig);
 }
 
+async function createNewSessionFromConfig(argv: ArgumentsCamelCase<OpenArgs>): Promise<{
+  browser: WebdriverIO.Browser
+  requestedCapabilities: Record<string, unknown>
+  sessionType: 'browser' | 'ios' | 'android'
+}> {
+  const wdioConfig = await loadWdioConfig(argv.config!);
+  const baseCaps = await pickCapabilities(wdioConfig) as Record<string, unknown>;
+
+  const isMobile = 'platformName' in baseCaps;
+  const sessionType: 'browser' | 'ios' | 'android' = isMobile
+    ? (baseCaps.platformName as string) === 'iOS' ? 'ios' : 'android'
+    : 'browser';
+
+  const browserExplicit = !isMobile && (process.argv.includes('--browser') || process.argv.includes('-b'));
+  const capabilities: Record<string, unknown> = {
+    ...baseCaps,
+    ...(isMobile && argv.app ? { 'appium:app': argv.app } : {}),
+    ...(isMobile && argv.device ? { 'appium:deviceName': argv.device } : {}),
+    ...(browserExplicit ? { browserName: argv.browser } : {}),
+  };
+
+  const remoteOpts: Capabilities.WebdriverIOConfig = {
+    hostname: argv.hostname ?? wdioConfig.hostname,
+    port: argv.port ?? wdioConfig.port,
+    path: argv.path ?? wdioConfig.path,
+    capabilities: capabilities as Capabilities.RequestedStandaloneCapabilities,
+    logLevel: (process.env.WDIO_LOG_LEVEL ?? 'error') as Options.WebDriverLogTypes,
+  };
+
+  const browser = await remote(remoteOpts);
+  if (argv.url) await browser.url(argv.url);
+
+  return { browser, requestedCapabilities: capabilities, sessionType };
+}
+
 async function createNewSession(argv: ArgumentsCamelCase<OpenArgs>): Promise<{
   browser: WebdriverIO.Browser
   requestedCapabilities: Record<string, unknown>
+  sessionType: 'browser' | 'ios' | 'android'
 }> {
+  if (argv.config) {
+    return createNewSessionFromConfig(argv);
+  }
+
   const capabilities: Capabilities.RequestedStandaloneCapabilities = {};
   const isMobile = !!argv.app || !!argv.device;
 
@@ -222,7 +268,7 @@ async function createNewSession(argv: ArgumentsCamelCase<OpenArgs>): Promise<{
     await browser.url(argv.url);
   }
 
-  return { browser, requestedCapabilities: capabilities as Record<string, unknown> };
+  return { browser, requestedCapabilities: capabilities as Record<string, unknown>, sessionType: resolveSessionType(argv) };
 }
 
 async function finalizeOpen(opts: {
@@ -264,8 +310,8 @@ export async function handler(argv: ArgumentsCamelCase<OpenArgs>) {
     if (!proceed) return;
   }
 
-  const sessionType = resolveSessionType(argv);
   let browser: WebdriverIO.Browser;
+  let sessionType: 'browser' | 'ios' | 'android';
   let capabilities: Record<string, unknown>;
   let url: string;
   let openParams: Record<string, unknown>;
@@ -278,15 +324,19 @@ export async function handler(argv: ArgumentsCamelCase<OpenArgs>) {
     url = argv.url || (isMobileAttach ? '' : await browser.getUrl().catch(() => ''));
     openParams = { url: argv.url, attach: true };
     isAttached = true;
+    sessionType = resolveSessionType(argv);
   } else {
     const result = await createNewSession(argv);
     browser = result.browser;
-    const isMobile = !!argv.app || !!argv.device;
+    sessionType = result.sessionType;
     capabilities = { ...result.requestedCapabilities, ...browser.capabilities as Record<string, unknown> };
     url = argv.url || '';
-    openParams = isMobile
-      ? { app: argv.app || '', platform: argv.platform ?? (argv.app?.endsWith('.apk') ? 'android' : 'ios') }
-      : { url: argv.url || '', browser: argv.browser };
+    const isMobile = !argv.config && (!!argv.app || !!argv.device);
+    openParams = argv.config
+      ? { config: argv.config, url: argv.url }
+      : isMobile
+        ? { app: argv.app || '', platform: argv.platform ?? (argv.app?.endsWith('.apk') ? 'android' : 'ios') }
+        : { url: argv.url || '', browser: argv.browser };
     isAttached = false;
   }
 

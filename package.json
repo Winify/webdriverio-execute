@@ -48,6 +48,7 @@
   "dependencies": {
     "@wdio/mcp": "^2.5.3",
     "@wdio/types": "^9.27.0",
+    "jiti": "^2.6.1",
     "webdriverio": "^9.27.0",
     "yargs": "^17.7.2"
   },

@@ -41,12 +41,17 @@ vi.mock('../../src/steps.js', () => ({
   finalizeSteps: vi.fn().mockResolvedValue(undefined),
   deleteStepsFile: vi.fn().mockResolvedValue(undefined),
 }));
+vi.mock('../../src/config-loader.js', () => ({
+  loadWdioConfig: vi.fn(),
+  pickCapabilities: vi.fn(),
+}));
 
 import { remote } from 'webdriverio';
 import { waitForCDP, closeStaleMappers } from '../../src/cdp.js';
 import { handler } from '../../src/commands/open.js';
 import { readSession } from '../../src/session.js';
 import { appendStep, initSteps } from '../../src/steps.js';
+import { loadWdioConfig, pickCapabilities } from '../../src/config-loader.js';
 
 const TEST_DIR = path.join(os.tmpdir(), 'wdio-x-test-open');
 
@@ -346,5 +351,148 @@ describe('open command --attach', () => {
 
     const meta = await readSession('mobile-attach', TEST_DIR);
     expect(meta!.isAttached).toBe(true);
+  });
+});
+
+describe('open command --config', () => {
+  let logSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(async () => {
+    await fs.mkdir(TEST_DIR, { recursive: true });
+    logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.mocked(remote).mockClear();
+    vi.mocked(loadWdioConfig).mockResolvedValue({
+      hostname: 'config-host',
+      port: 9999,
+      capabilities: { browserName: 'firefox' },
+    } as unknown as WebdriverIO.Config);
+    vi.mocked(pickCapabilities).mockResolvedValue({ browserName: 'firefox' } as WebdriverIO.Capabilities);
+  });
+
+  afterEach(async () => {
+    await fs.rm(TEST_DIR, { recursive: true, force: true });
+    logSpy.mockRestore();
+    vi.mocked(initSteps).mockClear();
+    vi.mocked(appendStep).mockClear();
+  });
+
+  it('calls remote with capabilities and connection from config', async () => {
+    await handler({
+      session: 'cfg',
+      config: './wdio.conf.browser.js',
+      _sessionsDir: TEST_DIR,
+    } as unknown as Parameters<typeof handler>[0]);
+
+    expect(remote).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hostname: 'config-host',
+        port: 9999,
+        capabilities: expect.objectContaining({ browserName: 'firefox' }),
+      }),
+    );
+  });
+
+  it('CLI --hostname overrides config hostname', async () => {
+    await handler({
+      session: 'cfg',
+      config: './wdio.conf.browser.js',
+      hostname: 'override-host',
+      _sessionsDir: TEST_DIR,
+    } as unknown as Parameters<typeof handler>[0]);
+
+    expect(remote).toHaveBeenCalledWith(
+      expect.objectContaining({ hostname: 'override-host' }),
+    );
+  });
+
+  it('mobile config: --app patches appium:app, other caps preserved', async () => {
+    vi.mocked(loadWdioConfig).mockResolvedValue({
+      hostname: 'localhost',
+      port: 4723,
+      capabilities: {
+        platformName: 'Android',
+        'appium:deviceName': 'Pixel 6',
+        'appium:automationName': 'UiAutomator2',
+      },
+    } as unknown as WebdriverIO.Config);
+    vi.mocked(pickCapabilities).mockResolvedValue({
+      platformName: 'Android',
+      'appium:deviceName': 'Pixel 6',
+      'appium:automationName': 'UiAutomator2',
+    } as WebdriverIO.Capabilities);
+
+    await handler({
+      session: 'cfg-mobile',
+      config: './wdio.conf.mobile.js',
+      app: '/new/app.apk',
+      _sessionsDir: TEST_DIR,
+    } as unknown as Parameters<typeof handler>[0]);
+
+    expect(remote).toHaveBeenCalledWith(
+      expect.objectContaining({
+        capabilities: expect.objectContaining({
+          platformName: 'Android',
+          'appium:deviceName': 'Pixel 6',
+          'appium:automationName': 'UiAutomator2',
+          'appium:app': '/new/app.apk',
+        }),
+      }),
+    );
+  });
+
+  it('mobile config: --device patches appium:deviceName', async () => {
+    vi.mocked(pickCapabilities).mockResolvedValue({
+      platformName: 'Android',
+      'appium:deviceName': 'Pixel 6',
+    } as WebdriverIO.Capabilities);
+
+    await handler({
+      session: 'cfg-mobile',
+      config: './wdio.conf.mobile.js',
+      device: 'emulator-5554',
+      _sessionsDir: TEST_DIR,
+    } as unknown as Parameters<typeof handler>[0]);
+
+    expect(remote).toHaveBeenCalledWith(
+      expect.objectContaining({
+        capabilities: expect.objectContaining({
+          'appium:deviceName': 'emulator-5554',
+        }),
+      }),
+    );
+  });
+
+  it('session type is inferred as browser from config caps', async () => {
+    await handler({
+      session: 'cfg',
+      config: './wdio.conf.browser.js',
+      _sessionsDir: TEST_DIR,
+    } as unknown as Parameters<typeof handler>[0]);
+
+    expect(initSteps).toHaveBeenCalledWith('cfg', expect.any(String), 'browser', expect.any(String));
+  });
+
+  it('session type is inferred as android from config caps', async () => {
+    vi.mocked(pickCapabilities).mockResolvedValue({
+      platformName: 'Android',
+    } as WebdriverIO.Capabilities);
+
+    await handler({
+      session: 'cfg-android',
+      config: './wdio.conf.mobile.js',
+      _sessionsDir: TEST_DIR,
+    } as unknown as Parameters<typeof handler>[0]);
+
+    expect(initSteps).toHaveBeenCalledWith('cfg-android', expect.any(String), 'android', expect.any(String));
+  });
+
+  it('logs "started" message after config session', async () => {
+    await handler({
+      session: 'cfg',
+      config: './wdio.conf.browser.js',
+      _sessionsDir: TEST_DIR,
+    } as unknown as Parameters<typeof handler>[0]);
+
+    expect(logSpy).toHaveBeenCalledWith('Session "cfg" started.');
   });
 });
