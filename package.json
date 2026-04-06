@@ -47,7 +47,7 @@
     "release": "release-it"
   },
   "dependencies": {
-    "@wdio/mcp": "^2.5.3",
+    "@wdio/mcp": "^3.2.2",
     "@wdio/types": "^9.27.0",
     "jiti": "^2.6.1",
     "webdriverio": "^9.27.0",
@@ -55,7 +55,7 @@
   },
   "devDependencies": {
     "@release-it/conventional-changelog": "^10.0.6",
-    "@types/node": "^24.12.0",
+    "@types/node": "^24.12.2",
     "@types/yargs": "^17.0.35",
     "@wdio/eslint": "^0.1.3",
     "eslint": "^9.39.4",
