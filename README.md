@@ -32,6 +32,9 @@ wdiox open --attach --debug-port 9333 --debug-host 127.0.0.1
 
 # Attach to an already-running mobile app (Appium)
 wdiox open --attach --device "emulator-5554" --platform android
+
+# Reuse an existing WebdriverIO config
+wdiox open --config wdio.conf.ts
 ```
 
 | Option | Default | Description |
@@ -48,6 +51,7 @@ wdiox open --attach --device "emulator-5554" --platform android
 | `--attach` | `false` | Attach to an already-running browser or app instead of launching a new one |
 | `--debug-port` | `9222` | Chrome remote debugging port (used with `--attach`) |
 | `--debug-host` | `localhost` | Chrome remote debugging host (used with `--attach`) |
+| `--config` | — | Path to `wdio.conf.js` or `wdio.conf.ts` (reuse existing WebdriverIO config) |
 | `--session` | `default` | Session name |
 
 If a session with the given name is already active, you'll be prompted to close it first.
@@ -172,6 +176,19 @@ wdiox steps --file .wdiox/<session>-20240101120000.steps.json
 | `--json` | `false` | Output raw JSON |
 | `--list` | `false` | List all archived steps files |
 | `--file` | — | Display a specific archived steps file by path |
+
+---
+
+### `skills`
+
+Progressive documentation for AI agents and explorers. Lists all topics or loads a specific guide on demand.
+
+```bash
+wdiox skills                    # list all topics
+wdiox skills open               # full guide for the open command
+wdiox skills execute            # JavaScript & mobile command guide
+wdiox skills open --flags       # flags reference only
+```
 
 ---
 
