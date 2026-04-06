@@ -158,7 +158,7 @@ export function withSession<T extends SessionArgs>(
 
     const meta = await readSession(sessionName, sessionsDir);
     if (!meta) {
-      console.error(`Error: No active session [${sessionName}]. Run wdiox open <url> first.`);
+      console.error(`Error: No active session [${sessionName}]. Run wdiox open <url> to start one, or wdiox session-list to check active sessions.`);
       return;
     }
 

@@ -46,7 +46,7 @@ export async function lookupRef (
 ): Promise<{ ref: RefEntry; selector: string } | null> {
   const refs = await readRefs(refsPath);
   if (!refs) {
-    console.error('Error: No snapshot taken. Run wdiox snapshot first.');
+    console.error('Error: No snapshot taken for this session. Run wdiox snapshot first to capture element refs.');
     return null;
   }
 

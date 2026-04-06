@@ -208,7 +208,7 @@ describe('formatSteps', () => {
 
 describe('formatStepsList', () => {
   it('should return message when no archived files', () => {
-    expect(formatStepsList([])).toBe('No archived steps files found.');
+    expect(formatStepsList([])).toBe('No archived steps files found. Steps are archived when a session is closed with wdiox close.');
   });
 
   it('should list archived file names', () => {

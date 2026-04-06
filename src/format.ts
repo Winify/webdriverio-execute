@@ -67,7 +67,7 @@ export function formatSteps(steps: RecordedStep[]): string {
 }
 
 export function formatStepsList(files: string[]): string {
-  if (files.length === 0) return 'No archived steps files found.';
+  if (files.length === 0) return 'No archived steps files found. Steps are archived when a session is closed with wdiox close.';
   return files.join('\n');
 }
 

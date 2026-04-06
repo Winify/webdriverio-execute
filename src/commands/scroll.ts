@@ -91,7 +91,7 @@ export const handler = withSession<ScrollArgs>(async (argv: ArgumentsCamelCase<S
       console.log(`Swiped ${direction}`);
     } else {
       if (direction === 'left' || direction === 'right') {
-        console.error('Error: browser does not support left/right scroll. Use wdiox execute for horizontal scroll.');
+        console.error('Error: Browser does not support left/right scroll. Use wdiox execute "window.scrollBy(500, 0)" for horizontal scroll.');
         return;
       }
       const pixels = argv.pixels ?? 500;

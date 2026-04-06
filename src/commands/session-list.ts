@@ -17,7 +17,7 @@ export async function handler (argv: ArgumentsCamelCase<SessionListArgs>) {
   const sessions = await listSessions(sessionsDir);
 
   if (sessions.length === 0) {
-    console.log('No active sessions.');
+    console.log('No active sessions. Run wdiox open <url> to start a new session.');
     return;
   }
 

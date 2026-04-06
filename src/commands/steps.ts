@@ -86,7 +86,7 @@ export const handler = async (argv: ArgumentsCamelCase<StepsArgs>): Promise<void
   // Default: active session steps
   const data = await readSteps(sessionName, sessionsDir);
   if (!data) {
-    console.error(`Error: No steps file for session [${sessionName}]. The session may not be active or no steps were recorded.`);
+    console.error(`Error: No steps file for session [${sessionName}]. The session may not be active or no steps were recorded.\nHint: Use wdiox steps --list to view archived steps from previous sessions.`);
     return;
   }
 
