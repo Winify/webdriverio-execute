@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/Winify/webdriverio-execute/compare/v1.0.1...v1.1.0) (2026-04-06)
+
+### Features
+
+* Introduce --config flag to open command for wdio.conf.js/ts session loading ([eea4e06](https://github.com/Winify/webdriverio-execute/commit/eea4e0607303e6729d43b654fcda0e236d717436))
+* Introduce dynamic skills for wdiox CLI with skill content engine ([fc1c78f](https://github.com/Winify/webdriverio-execute/commit/fc1c78f49f6c592501f3fd01649f5777efca8dc1))
+
 ## [1.0.1](https://github.com/Winify/webdriverio-execute/compare/v1.0.0...v1.0.1) (2026-04-02)
 
 ## [1.0.0](https://github.com/Winify/webdriverio-execute/compare/v0.3.0...v1.0.0) (2026-04-02)
