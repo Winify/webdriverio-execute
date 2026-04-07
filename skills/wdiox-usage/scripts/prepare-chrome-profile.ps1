@@ -4,8 +4,20 @@
 $chromeSrc = "$env:LOCALAPPDATA\Google\Chrome\User Data"
 $debugDir = "$env:TEMP\chrome-debug"
 
+Write-Warning "Copying Chrome cookies, saved passwords, and session tokens to $debugDir"
+Write-Warning "This grants the debug session full access to your authenticated accounts."
+
 Remove-Item -Recurse -Force $debugDir -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $debugDir | Out-Null
+
+$acl = Get-Acl $debugDir
+$acl.SetAccessRuleProtection($true, $false)
+$rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+  [System.Security.Principal.WindowsIdentity]::GetCurrent().Name,
+  "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow"
+)
+$acl.AddAccessRule($rule)
+Set-Acl $debugDir $acl
 
 Copy-Item "$chromeSrc\Local State" "$debugDir\Local State"
 Copy-Item -Recurse "$chromeSrc\Default" "$debugDir\Default"

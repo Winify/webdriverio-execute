@@ -13,8 +13,12 @@ fi
 
 DEBUG_DIR="/tmp/chrome-debug"
 
+echo "WARNING: Copying Chrome cookies, saved passwords, and session tokens to $DEBUG_DIR"
+echo "         This grants the debug session full access to your authenticated accounts."
+
 rm -rf "$DEBUG_DIR"
 mkdir -p "$DEBUG_DIR"
+chmod 700 "$DEBUG_DIR"
 
 cp "$CHROME_SRC/Local State" "$DEBUG_DIR/Local State"
 cp -r "$CHROME_SRC/Default" "$DEBUG_DIR/Default"
