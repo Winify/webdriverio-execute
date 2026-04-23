@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/Winify/webdriverio-execute/compare/v1.1.0...v1.2.0) (2026-04-23)
+
+### Features
+
+* Add `--headless` and `--web-security` flags to `open` command for enhanced Chrome configuration ([859d8cf](https://github.com/Winify/webdriverio-execute/commit/859d8cf4cfec0c37bc3beceac261af3c4f89d7df))
+* Extend `navigate` command with browser actions (refresh, back, forward) ([04fa78a](https://github.com/Winify/webdriverio-execute/commit/04fa78aaf4b1c2c788f45448f41d281116f770f4))
+
 ## [1.1.0](https://github.com/Winify/webdriverio-execute/compare/v1.0.1...v1.1.0) (2026-04-06)
 
 ### Features
