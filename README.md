@@ -23,6 +23,8 @@ Open a browser or Appium session.
 ```bash
 wdiox open https://example.com
 wdiox open https://example.com --browser firefox
+wdiox open https://example.com --headless
+wdiox open https://internetbank.example.com --no-web-security   # bypass CSP
 wdiox open --app /path/to/app.apk --device "emulator-5554"
 wdiox open --app /path/to/app.ipa --device "iPhone 15"
 
@@ -33,13 +35,16 @@ wdiox open --attach --debug-port 9333 --debug-host 127.0.0.1
 # Attach to an already-running mobile app (Appium)
 wdiox open --attach --device "emulator-5554" --platform android
 
-# Reuse an existing WebdriverIO config
+# Reuse an existing WebdriverIO config (full capabilities override)
 wdiox open --config wdio.conf.ts
 ```
 
 | Option | Default | Description |
 |---|---|---|
 | `--browser` | `chrome` | Browser to use (`chrome`, `firefox`, `edge`, `safari`) |
+| `--headless` | `false` | Run Chrome in headless mode |
+| `--no-web-security` | — | Disable Chrome web security and CSP (use when `snapshot` fails on strict-CSP sites) |
+| `--config` | — | Path to `wdio.conf.js` or `wdio.conf.ts` — fully overrides browser/Appium capabilities |
 | `--app` | — | Path to mobile app (`.apk`, `.ipa`, `.app`) |
 | `--device` | `emulator-5554` | Device name |
 | `--platform` | auto-detected | `android` or `ios` |
@@ -51,7 +56,6 @@ wdiox open --config wdio.conf.ts
 | `--attach` | `false` | Attach to an already-running browser or app instead of launching a new one |
 | `--debug-port` | `9222` | Chrome remote debugging port (used with `--attach`) |
 | `--debug-host` | `localhost` | Chrome remote debugging host (used with `--attach`) |
-| `--config` | — | Path to `wdio.conf.js` or `wdio.conf.ts` (reuse existing WebdriverIO config) |
 | `--session` | `default` | Session name |
 
 If a session with the given name is already active, you'll be prompted to close it first.
@@ -113,11 +117,15 @@ wdiox screenshot /tmp/login-page.png
 
 ### `navigate` / `goto`
 
-Navigate to a URL within the active session.
+Navigate to a URL, or control browser history.
 
 ```bash
 wdiox navigate https://example.com/login
 wdiox goto https://example.com/login
+
+wdiox navigate refresh   # reload current page
+wdiox navigate back      # go back in history
+wdiox navigate forward   # go forward in history
 ```
 
 ---
