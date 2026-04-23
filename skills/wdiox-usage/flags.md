@@ -70,10 +70,13 @@ export const config = {
 
 ## `navigate` / `goto` flags
 
-| Positional / Flag | Notes                                    |
-|-------------------|------------------------------------------|
-| `<url>`           | URL to navigate to (required)            |
-| `--session` / `-s`| Session name (default: `default`)        |
+| Positional / Flag | Notes                                                          |
+|-------------------|----------------------------------------------------------------|
+| `<url>`           | URL to navigate to                                             |
+| `refresh`         | Reload the current page (`wdiox navigate refresh`)             |
+| `back`            | Go back in browser history (`wdiox navigate back`)             |
+| `forward`         | Go forward in browser history (`wdiox navigate forward`)       |
+| `--session` / `-s`| Session name (default: `default`)                              |
 
 ## `scroll` / `swipe` flags
 

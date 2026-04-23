@@ -1,12 +1,17 @@
 # `navigate`, `scroll`, and `steps` — Guide
 
-## `wdiox navigate <url>` / `goto <url>`
+## `wdiox navigate <url|action>` / `goto <url>`
 
-Changes the URL of the active session without closing and reopening it. Works on both browser and mobile (deep link / intent).
+Changes the URL of the active session, or controls browser history. Works on both browser and mobile (deep link / intent).
 
 ```bash
 wdiox navigate https://example.com/dashboard
 wdiox goto https://example.com/settings      # alias
+
+# Browser history actions
+wdiox navigate refresh   # reload the current page
+wdiox navigate back      # go back in browser history
+wdiox navigate forward   # go forward in browser history
 ```
 
 **When to use over `open`:**
@@ -14,7 +19,7 @@ wdiox goto https://example.com/settings      # alias
 - Skipping intermediate pages in a multi-step flow to resume from a known URL
 - Mobile deep links (if the app registers the URL scheme)
 
-**Mobile note:** `navigate` on a native Appium session sends a URL intent via ADB. It works for apps that register URL schemes (deep links). For navigating within the app, use `click` on nav elements instead.
+**Mobile note:** `navigate` on a native Appium session sends a URL intent via ADB. It works for apps that register URL schemes (deep links). For navigating within the app, use `click` on nav elements instead. History actions (`refresh`, `back`, `forward`) are browser-only.
 
 ```bash
 # Browser: skip login, start from the dashboard
@@ -22,6 +27,9 @@ wdiox open https://app.example.com/login
 wdiox fill e2 user@example.com && wdiox fill e3 "$PASSWORD" && wdiox click e4
 wdiox navigate https://app.example.com/dashboard   # jump straight to target
 wdiox snapshot
+
+# Reload after a form submission to check the result
+wdiox click e3 && wdiox navigate refresh && wdiox snapshot
 ```
 
 ---
