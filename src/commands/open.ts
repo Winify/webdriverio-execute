@@ -3,7 +3,7 @@ import type { ArgumentsCamelCase, Argv } from 'yargs';
 import type { Capabilities, Options } from '@wdio/types';
 import { attach, remote } from 'webdriverio';
 
-import { buildAttachOptions, deleteSessionFiles, getSessionDir, readSession, writeSession, type SessionMetadata } from '../session.js';
+import { buildAttachOptions, deleteSessionFiles, getSessionDir, readSession, type SessionMetadata, writeSession } from '../session.js';
 import { closeStaleMappers, restoreAndSwitchToActiveTab, waitForCDP } from '../cdp.js';
 import { appendStep, deleteStepsFile, initSteps } from '../steps.js';
 import { loadWdioConfig, pickCapabilities } from '../config-loader.js';
@@ -79,6 +79,16 @@ export const builder = (yargs: Argv) => {
       default: 'localhost',
       describe: 'Chrome remote debugging host (used with --attach)',
     })
+    .option('headless', {
+      type: 'boolean',
+      default: false,
+      describe: 'Run browser in headless mode (Chrome only)',
+    })
+    .option('web-security', {
+      type: 'boolean',
+      default: true,
+      describe: 'Enable web security — pass --no-web-security to disable (Chrome only)',
+    })
     .option('config', {
       type: 'string',
       describe: 'Path to wdio.conf.js or wdio.conf.ts',
@@ -98,6 +108,8 @@ interface OpenArgs {
   grantPermissions: boolean
   acceptAlert: boolean
   autoDismiss: boolean
+  headless: boolean;
+  webSecurity: boolean;
   attach: boolean
   debugPort: number
   debugHost: string
@@ -251,6 +263,16 @@ async function createNewSession(argv: ArgumentsCamelCase<OpenArgs>): Promise<{
     capabilities.browserName = argv.browser;
     // @ts-expect-error No `spawnOpts` defined in WebdriverIO.ChromedriverOptions
     capabilities['wdio:chromedriverOptions'] = { spawnOpts: { detached: true } };
+    const chromeArgs = [
+      '--window-size=1920,920',
+      '--no-sandbox',
+      '--disable-search-engine-choice-screen',
+      '--disable-infobars',
+    ];
+    if (!argv.webSecurity) chromeArgs.push('--disable-web-security', '--allow-running-insecure-content');
+    if (argv.headless) chromeArgs.push('--headless=new', '--disable-gpu', '--disable-dev-shm-usage');
+
+    capabilities['goog:chromeOptions'] = { args: chromeArgs };
   }
 
   const remoteOpts: Capabilities.WebdriverIOConfig = {

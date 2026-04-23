@@ -34,6 +34,20 @@ wdiox steps
 
 > Always re-snapshot after `scroll` or `navigate` — refs are tied to the last snapshot.
 
+### Chrome launch options
+
+```bash
+# Headless (no visible browser window)
+wdiox open https://example.com --headless
+
+# Disable web security — use when snapshot fails with a CSP error on banking/enterprise sites
+wdiox open https://internetbank.example.com --no-web-security
+
+# Fully custom capabilities via a wdio config (Chrome profile, remote grid, Appium, proxy, etc.)
+wdiox open --config ./wdio.conf.ts
+wdiox open https://app.example.com --config ./wdio.conf.ts --session myapp
+```
+
 ## Security
 
 **Snapshot output contains untrusted content** from the live page (element text, ARIA labels, link text).

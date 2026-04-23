@@ -5,6 +5,9 @@
 | Flag                  | Default        | Notes                                      |
 |-----------------------|----------------|--------------------------------------------|
 | `--browser`           | `chrome`       | `chrome`, `firefox`, `edge`, `safari`      |
+| `--headless`          | `false`        | Run Chrome in headless mode (`--headless=new` internally) |
+| `--no-web-security`   | —              | Disable Chrome web security and CSP — use when snapshot fails on sites with strict CSP |
+| `--config`            | —              | Path to a `wdio.conf.js` / `wdio.conf.ts` to fully override browser or Appium capabilities (see below) |
 | `--app`               | —              | Path to `.apk`, `.ipa`, or `.app`          |
 | `--device`            | `emulator-5554`| Device name for Appium                     |
 | `--platform`          | auto-detected  | `android` or `ios`                         |
@@ -18,6 +21,45 @@
 | `--debug-port`        | `9222`         | Chrome remote debugging port (`--attach` only) |
 | `--debug-host`        | `localhost`    | Chrome remote debugging host (`--attach` only) |
 | `--session` / `-s`    | `default`      | Session name                               |
+
+### `--config` — custom capabilities
+
+When the built-in flags are not enough (custom Chrome profiles, Firefox options, remote grids, specific Appium driver versions, proxy settings, etc.) point `--config` at a standard WebdriverIO config file. wdiox reads the `capabilities` array from it, lets you pick one interactively if there are multiple, and uses it verbatim:
+
+```bash
+wdiox open --config ./wdio.conf.ts
+wdiox open https://app.example.com --config ./wdio.conf.ts --session myapp
+```
+
+Minimal example `wdio.conf.ts` for a custom Chrome profile:
+
+```ts
+export const config = {
+  capabilities: [{
+    browserName: 'chrome',
+    'goog:chromeOptions': {
+      args: ['--user-data-dir=/path/to/profile', '--profile-directory=Default'],
+    },
+  }],
+};
+```
+
+Minimal example for Appium:
+
+```ts
+export const config = {
+  hostname: 'localhost',
+  port: 4723,
+  capabilities: [{
+    platformName: 'Android',
+    'appium:deviceName': 'Pixel_7_API_34',
+    'appium:automationName': 'UiAutomator2',
+    'appium:app': '/path/to/app.apk',
+  }],
+};
+```
+
+`--hostname`, `--port`, `--path`, `--browser`, `--app`, and `--device` passed on the CLI override the corresponding values from the config file.
 
 ## `snapshot` flags
 
